@@ -157,7 +157,7 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
           <p className="mt-1 text-xs text-gray-600">
             Current:{" "}
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${fileLink}`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${fileLink}`}
               target="_blank"
               rel="noreferrer"
               className="text-blue-700 underline"

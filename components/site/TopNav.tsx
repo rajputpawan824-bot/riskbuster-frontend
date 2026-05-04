@@ -178,7 +178,7 @@ export function TopNav() {
                             {p.fileLink?.trim() && (
                               <>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${p.fileLink}`}
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -188,7 +188,7 @@ export function TopNav() {
                                   <Eye className="h-4 w-4" />
                                 </a>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${p.fileLink}`}
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
                                   download
                                   className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                   title="Download file"
@@ -231,7 +231,7 @@ export function TopNav() {
                                   {c.fileLink?.trim() && (
                                     <>
                                       <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${c.fileLink}`}
+                                        href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -241,7 +241,7 @@ export function TopNav() {
                                         <Eye className="h-4 w-4" />
                                       </a>
                                       <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${c.fileLink}`}
+                                        href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
                                         download
                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                         title="Download file"
@@ -419,7 +419,7 @@ export function TopNav() {
                               {p.fileLink?.trim() && (
                                 <>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${p.fileLink}`}
+                                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -429,7 +429,7 @@ export function TopNav() {
                                     <Eye className="h-4 w-4" />
                                   </a>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${p.fileLink}`}
+                                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
                                     download
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                     title="Download file"
@@ -466,7 +466,7 @@ export function TopNav() {
                                     {c.fileLink?.trim() && (
                                       <>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${c.fileLink}`}
+                                          href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -476,7 +476,7 @@ export function TopNav() {
                                           <Eye className="h-4 w-4" />
                                         </a>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${c.fileLink}`}
+                                          href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
                                           download
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                           title="Download file"
