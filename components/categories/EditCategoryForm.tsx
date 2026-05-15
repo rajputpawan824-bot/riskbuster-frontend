@@ -18,7 +18,7 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
   const [creditTo, setCreditTo] = useState("");
   const [description, setDescription] = useState("");
   const [fileLink, setFileLink] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [parentId, setParentId] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,14 +34,14 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
       setCreditTo(initial.creditTo);
       setDescription(initial.description);
       setFileLink(initial.fileLink);
-      setFile(null);
+      setFiles([]);
       setParentId(initial.parentId ?? "");
     } else {
       setTitle("");
       setCreditTo("");
       setDescription("");
       setFileLink("");
-      setFile(null);
+      setFiles([]);
       setParentId("");
     }
   }, [initial, mode]);
@@ -52,7 +52,7 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
     setLoading(true);
     try {
       const trimmedParent = parentId.trim() ? parentId.trim() : "";
-      const useMultipart = file != null;
+      const useMultipart = files.length > 0;
 
       if (useMultipart) {
         const fd = new FormData();
@@ -61,7 +61,7 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
         fd.append("description", description);
         fd.append("fileLink", fileLink);
         fd.append("parentId", trimmedParent);
-        fd.append("file", file);
+        for (const f of files) fd.append("files", f);
         if (mode === "add") {
           await apiPostForm<Category>("/api/categories", fd);
         } else if (initial) {
@@ -152,27 +152,36 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-[#001f3f]">Upload File</label>
-        {fileLink?.trim() && (
-          <p className="mt-1 text-xs text-gray-600">
-            Current:{" "}
-            <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${fileLink}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue-700 underline"
-            >
-              View file
-            </a>
-          </p>
+        <label className="text-sm font-medium text-[#001f3f]">Upload Files</label>
+        {!!(initial?.fileLinks?.length || initial?.fileLink?.trim()) && (
+          <div className="mt-1 space-y-1 text-xs text-gray-600">
+            <p className="font-medium">Current files:</p>
+            <ul className="list-disc pl-5">
+              {(initial?.fileLinks?.length ? initial.fileLinks : initial?.fileLink?.trim() ? [initial.fileLink] : []).map(
+                (l) => (
+                  <li key={l}>
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${l}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-700 underline"
+                    >
+                      View file
+                    </a>
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
         )}
         <input
           className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
           type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          multiple
+          onChange={(e) => setFiles(Array.from(e.target.files || []))}
         />
         <p className="mt-1 text-xs text-gray-500">
-          Choose a file to upload (optional). If you don’t select a file, the existing link is kept.
+          Choose one or more files to upload (optional). If you don’t select files, existing uploads are kept.
         </p>
       </div>
       <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">

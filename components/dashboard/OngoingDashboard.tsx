@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Filter, Plus, Search, X, Calendar } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, apiPostForm, apiPut, apiPutForm } from "@/lib/api";
 import { filterByCountry, sortConflicts, topN } from "@/lib/conflictFilter";
-import type { CountryFilter } from "@/lib/countries";
-import type { Conflict } from "@/types/models";
+import { WORLD_REGIONS, type CountryFilter } from "@/lib/countries";
+import type { Conflict, Country } from "@/types/models";
 import { CountrySidebar } from "./CountrySidebar";
 import { ConflictItemRow } from "./ConflictItemRow";
+import { CountryFormModalBody } from "./CountryFormModalBody";
 import { Modal } from "@/components/ui/Modal";
 import { ConflictFormModalBody } from "@/components/conflicts/ConflictFormModalBody";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FlashMessage } from "@/components/ui/FlashMessage";
 
 type SortKey = "latest" | "oldest";
 
@@ -30,8 +33,8 @@ const DEFAULT_FILTERS: FilterState = {
   dateTo: "",
 };
 
-const REGIONS = ["Africa", "Middle East", "Europe", "Asia-Pacific", "North America", "South America"];
-const IMPACTS = ["Critical", "High", "Medium", "Low"];
+/** Geographic reach of a conflict's impact. */
+const IMPACTS = ["Local", "Regional", "Global"];
 const STATUSES = ["Active", "Ceasefire", "Escalating", "De-escalating", "Resolved"];
 
 export function OngoingDashboard() {
@@ -39,7 +42,14 @@ export function OngoingDashboard() {
   const [raw, setRaw] = useState<Conflict[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Conflict | null>(null);
   const [country, setCountry] = useState<CountryFilter>("all");
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [countryModal, setCountryModal] = useState<
+    { type: "add" } | { type: "edit"; country: Country } | null
+  >(null);
+  const [countryConfirm, setCountryConfirm] = useState<Country | null>(null);
   const [sort, setSort] = useState<SortKey>("latest");
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -62,14 +72,48 @@ export function OngoingDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const loadCountries = useCallback(() => {
+    apiGet<Country[]>("/api/countries")
+      .then(setCountries)
+      .catch(() => setCountries([]));
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     load();
-  }, [load, ready]);
+    loadCountries();
+  }, [load, loadCountries, ready]);
 
   useEffect(() => {
   setMounted(true);
 }, []);
+
+  /** Lookup: country label (lowercased) → region. */
+  const regionByCountry = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of countries) {
+      if (c.region) m.set(c.label.toLowerCase(), c.region);
+    }
+    return m;
+  }, [countries]);
+
+  /**
+   * Resolve a region for a conflict's country string.
+   * Conflict country labels can be compound (e.g. "Israel / Palestine") — pick
+   * the first matching country we have a region for.
+   */
+  const regionForCountryString = useCallback(
+    (countryStr: string): string | null => {
+      if (!countryStr) return null;
+      const parts = countryStr.split("/").map((s) => s.trim().toLowerCase());
+      for (const p of parts) {
+        const r = regionByCountry.get(p);
+        if (r) return r;
+      }
+      return regionByCountry.get(countryStr.toLowerCase()) || null;
+    },
+    [regionByCountry]
+  );
 
   const list = useMemo(() => {
     let f = filterByCountry(raw, country);
@@ -82,20 +126,28 @@ export function OngoingDashboard() {
       );
     }
     if (filters.status) f = f.filter((c) => c.status === filters.status);
-    if (filters.region) f = f.filter((c) => c.region === filters.region);
-    if (filters.impact) f = f.filter((c) => c.impact === filters.impact);
+    if (filters.region)
+      f = f.filter((c) => regionForCountryString(c.country) === filters.region);
+    if (filters.impact)
+      f = f.filter((c) => (c.impact || "").toLowerCase() === filters.impact.toLowerCase());
     if (filters.dateFrom) f = f.filter((c) => new Date(c.date) >= new Date(filters.dateFrom));
     if (filters.dateTo) f = f.filter((c) => new Date(c.date) <= new Date(filters.dateTo));
     return topN(sortConflicts(f, sort), 10);
-  }, [raw, country, sort, search, filters]);
+  }, [raw, country, sort, search, filters, regionForCountryString]);
 
   const onDelete = async (c: Conflict) => {
-    if (!window.confirm(`Delete "${c.title}"?`)) return;
+    setConfirm(c);
+  };
+
+  const confirmDelete = async () => {
+    const c = confirm;
+    if (!c) return;
     try {
       await apiDelete(`/api/conflicts/${c.id}`);
+      setFlash("Deleted successfully.");
       load();
     } catch (e: unknown) {
-      window.alert(e instanceof Error ? e.message : "Delete failed");
+      setFlash(e instanceof Error ? e.message : "Delete failed");
     }
   };
 
@@ -129,6 +181,7 @@ export function OngoingDashboard() {
 
   return (
     <div>
+      <FlashMessage message={flash} tone={flash?.toLowerCase().includes("fail") ? "error" : "success"} onClose={() => setFlash(null)} />
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -226,7 +279,15 @@ export function OngoingDashboard() {
       )}
 
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
-        <CountrySidebar selected={country} onSelect={setCountry} />
+        <CountrySidebar
+          selected={country}
+          onSelect={setCountry}
+          countries={countries}
+          isEditable={isEditable}
+          onAdd={() => setCountryModal({ type: "add" })}
+          onEdit={(c) => setCountryModal({ type: "edit", country: c })}
+          onDelete={(c) => setCountryConfirm(c)}
+        />
         <section className="min-w-0 flex-1">
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-bold text-[#001f3f]">Top 10 Conflicts</h2>
@@ -311,19 +372,31 @@ export function OngoingDashboard() {
                     className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#001f3f]/20"
                   >
                     <option value="">All Regions</option>
-                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    {WORLD_REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
+                  <p className="text-[11px] text-gray-500">
+                    Based on each country&apos;s region. Set it in the country&apos;s Add/Edit dialog.
+                  </p>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Impact Level</label>
+                  <label className="text-sm font-semibold text-gray-700">
+                    Impact (Geographic Reach)
+                  </label>
                   <select
                     value={pendingFilters.impact}
                     onChange={(e) => setPendingFilters((p) => ({ ...p, impact: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#001f3f]/20"
                   >
-                    <option value="">All Impact Levels</option>
-                    {IMPACTS.map((i) => <option key={i} value={i}>{i}</option>)}
+                    <option value="">All Impacts</option>
+                    {IMPACTS.map((i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
                   </select>
+                  <p className="text-[11px] text-gray-500">
+                    Local = single country, Regional = neighbouring countries, Global = worldwide.
+                  </p>
                 </div>
               </div>
 
@@ -381,8 +454,9 @@ export function OngoingDashboard() {
           mode="add"
           onCancel={() => setAddOpen(false)}
           onSubmit={async (data) => {
-            await apiPost<Conflict>("/api/conflicts", data);
+            await apiPostForm<Conflict>("/api/conflicts", data);
             setAddOpen(false);
+            setFlash("Conflict added successfully.");
             load();
           }}
         />
@@ -395,13 +469,88 @@ export function OngoingDashboard() {
             initial={edit}
             onCancel={() => setEdit(null)}
             onSubmit={async (data) => {
-              await apiPut<Conflict>(`/api/conflicts/${edit.id}`, data);
+              await apiPutForm<Conflict>(`/api/conflicts/${edit.id}`, data);
               setEdit(null);
+              setFlash("Conflict updated successfully.");
               load();
             }}
           />
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={confirm != null}
+        title="Delete conflict"
+        message={confirm ? `Are you sure you want to delete "${confirm.title}"?` : ""}
+        confirmText="Yes, delete"
+        tone="danger"
+        onCancel={() => setConfirm(null)}
+        onConfirm={async () => {
+          await confirmDelete();
+          setConfirm(null);
+        }}
+      />
+
+      {/* Country Add/Edit Modal */}
+      <Modal
+        open={countryModal != null}
+        title={countryModal?.type === "add" ? "Add Country" : "Edit Country"}
+        onClose={() => setCountryModal(null)}
+      >
+        {countryModal && (
+          <CountryFormModalBody
+            mode={countryModal.type}
+            initial={countryModal.type === "edit" ? countryModal.country : undefined}
+            onCancel={() => setCountryModal(null)}
+            onSubmit={async (data) => {
+              try {
+                if (countryModal.type === "add") {
+                  await apiPost<Country>("/api/countries", data);
+                  setFlash("Country added successfully.");
+                } else {
+                  await apiPut<Country>(`/api/countries/${countryModal.country.id}`, data);
+                  setFlash("Country updated successfully.");
+                  if (country === countryModal.country.label && data.label !== countryModal.country.label) {
+                    setCountry(data.label);
+                  }
+                }
+                setCountryModal(null);
+                loadCountries();
+              } catch (e: unknown) {
+                throw e instanceof Error ? e : new Error("Request failed");
+              }
+            }}
+          />
+        )}
+      </Modal>
+
+      {/* Country Delete Confirm */}
+      <ConfirmDialog
+        open={countryConfirm != null}
+        title="Delete country"
+        message={
+          countryConfirm
+            ? `Are you sure you want to delete "${countryConfirm.label}"?`
+            : ""
+        }
+        confirmText="Yes, delete"
+        tone="danger"
+        onCancel={() => setCountryConfirm(null)}
+        onConfirm={async () => {
+          const c = countryConfirm;
+          if (!c) return;
+          try {
+            await apiDelete(`/api/countries/${c.id}`);
+            setFlash("Country deleted successfully.");
+            if (country === c.label) setCountry("all");
+            loadCountries();
+          } catch (e: unknown) {
+            setFlash(e instanceof Error ? e.message : "Delete failed");
+          } finally {
+            setCountryConfirm(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -11,28 +11,32 @@ import {
   FileText,
   Home,
   LogOut,
+  Mail,
   Menu,
   Pencil,
   Plus,
   Shield,
+  Trash2,
   User,
   UserCircle,
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { apiGet } from "@/lib/api";
-import type { Category } from "@/types/models";
+import { apiDelete, apiGet } from "@/lib/api";
+import type { Category, Template } from "@/types/models";
 import { Modal } from "@/components/ui/Modal";
 import { EditCategoryForm } from "@/components/categories/EditCategoryForm";
+import { EditTemplateForm } from "@/components/templates/EditTemplateForm";
+import { ContactUsForm } from "@/components/contact/ContactUsForm";
 import { BrandLogo } from "./BrandLogo";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FlashMessage } from "@/components/ui/FlashMessage";
 
-const templatesItems = [
-  { label: "Report template", href: "#" },
-  { label: "Checklist template", href: "#" },
-];
+// Templates are loaded from the API.
 
 type CatModalMode = { type: "edit"; category: Category } | { type: "add" } | null;
+type TplModalMode = { type: "edit"; template: Template } | { type: "add" } | null;
 
 export function TopNav() {
   const path = usePathname();
@@ -44,8 +48,19 @@ export function TopNav() {
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
   const [mobileTplOpen, setMobileTplOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [catModal, setCatModal] = useState<CatModalMode>(null);
+  const [tplModal, setTplModal] = useState<TplModalMode>(null);
+  const [contactOpen, setContactOpen] = useState(false);
   const [mounted, setMounted] = useState(false); // ← fix for hydration
+  const [flash, setFlash] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{
+    kind: "category" | "template";
+    id: string;
+    title: string;
+    blocked?: boolean;
+    blockedReason?: string;
+  } | null>(null);
   const rCat = useRef<HTMLDivElement | null>(null);
   const rTpl = useRef<HTMLDivElement | null>(null);
 
@@ -66,6 +81,11 @@ export function TopNav() {
     return { parents, childrenByParent };
   }, [categories]);
 
+  const firstFileLink = (c: Category): string | null => {
+    const links = c.fileLinks && c.fileLinks.length > 0 ? c.fileLinks : c.fileLink?.trim() ? [c.fileLink] : [];
+    return links[0] || null;
+  };
+
   // Only render interactive/stateful UI after mount to avoid SSR mismatch
   useEffect(() => {
     setMounted(true);
@@ -75,8 +95,32 @@ export function TopNav() {
     apiGet<Category[]>("/api/categories").then(setCategories).catch(() => setCategories([]));
   };
 
+  const loadTpl = () => {
+    apiGet<Template[]>("/api/templates").then(setTemplates).catch(() => setTemplates([]));
+  };
+
+  const onDeleteCategory = async (c: Category) => {
+    const hasKids = (catTree.childrenByParent.get(c.id) || []).length > 0;
+    if (hasKids) {
+      setConfirm({
+        kind: "category",
+        id: c.id,
+        title: c.title,
+        blocked: true,
+        blockedReason: `"${c.title}" has subcategories and cannot be deleted.`,
+      });
+      return;
+    }
+    setConfirm({ kind: "category", id: c.id, title: c.title });
+  };
+
+  const onDeleteTemplate = (t: Template) => {
+    setConfirm({ kind: "template", id: t.id, title: t.title });
+  };
+
   useEffect(() => {
     loadCat();
+    loadTpl();
   }, []);
 
   useEffect(() => {
@@ -118,6 +162,11 @@ export function TopNav() {
   }
   return (
     <>
+      <FlashMessage
+        message={flash}
+        tone={flash?.toLowerCase().includes("fail") ? "error" : "success"}
+        onClose={() => setFlash(null)}
+      />
       <nav className="relative z-50 bg-[#001f3f]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3">
           {/* Desktop nav links */}
@@ -175,10 +224,10 @@ export function TopNav() {
                             <span className="truncate">{p.title}</span>
                           </span>
                           <span className="flex items-center gap-1">
-                            {p.fileLink?.trim() && (
+                            {firstFileLink(p) && (
                               <>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -188,7 +237,7 @@ export function TopNav() {
                                   <Eye className="h-4 w-4" />
                                 </a>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
                                   download
                                   className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                   title="Download file"
@@ -200,14 +249,29 @@ export function TopNav() {
                             )}
                             {hasKids && <ChevronRight className="h-4 w-4 text-gray-400" />}
                             {isEditable && (
-                              <button
-                                type="button"
-                                className="shrink-0 rounded p-1 text-[#2563eb] hover:bg-gray-100"
-                                title="Edit category"
-                                onClick={() => { setCatModal({ type: "edit", category: p }); setOpenCat(false); }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-1 text-[#2563eb] hover:bg-gray-100"
+                                  title="Edit category"
+                                  onClick={() => { setCatModal({ type: "edit", category: p }); setOpenCat(false); }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-1 text-red-600 hover:bg-red-50"
+                                  title="Delete category"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenCat(false);
+                                    setOpenCatParentId(null);
+                                    void onDeleteCategory(p);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
                             )}
                           </span>
                         </div>
@@ -228,10 +292,10 @@ export function TopNav() {
                                   <span className="truncate">{c.title}</span>
                                 </span>
                                 <span className="flex items-center gap-1">
-                                  {c.fileLink?.trim() && (
+                                  {firstFileLink(c) && (
                                     <>
                                       <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
+                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -241,7 +305,7 @@ export function TopNav() {
                                         <Eye className="h-4 w-4" />
                                       </a>
                                       <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
+                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
                                         download
                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                         title="Download file"
@@ -252,18 +316,33 @@ export function TopNav() {
                                     </>
                                   )}
                                   {isEditable && (
-                                    <button
-                                      type="button"
-                                      className="shrink-0 rounded p-1 text-[#2563eb] hover:bg-gray-100"
-                                      title="Edit category"
-                                      onClick={() => {
-                                        setCatModal({ type: "edit", category: c });
-                                        setOpenCat(false);
-                                        setOpenCatParentId(null);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </button>
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="shrink-0 rounded p-1 text-[#2563eb] hover:bg-gray-100"
+                                        title="Edit category"
+                                        onClick={() => {
+                                          setCatModal({ type: "edit", category: c });
+                                          setOpenCat(false);
+                                          setOpenCatParentId(null);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="shrink-0 rounded p-1 text-red-600 hover:bg-red-50"
+                                        title="Delete category"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenCat(false);
+                                          setOpenCatParentId(null);
+                                          void onDeleteCategory(c);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </>
                                   )}
                                 </span>
                               </div>
@@ -301,24 +380,109 @@ export function TopNav() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${openTpl ? "rotate-180" : ""}`} />
               </button>
               {mounted && openTpl && (
-                <div className="absolute left-0 top-full z-40 min-w-[200px] rounded-b-md border border-gray-200 bg-white py-2 shadow-lg">
-                  {templatesItems.map((t) => (
-                    <a
-                      key={t.label}
-                      href={t.href}
-                      className="block px-3 py-2 text-sm text-[#001f3f] hover:bg-gray-50"
-                    >
-                      {t.label}
-                    </a>
-                  ))}
+                <div
+                  className="absolute left-0 top-full z-40 min-w-[240px] rounded-b-md border border-gray-200 bg-white py-2 shadow-lg"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {templates.map((t) => {
+                    const links =
+                      t.fileLinks && t.fileLinks.length > 0
+                        ? t.fileLinks
+                        : t.fileLink?.trim()
+                          ? [t.fileLink]
+                          : [];
+                    const first = links[0] || null;
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-[#001f3f] hover:bg-gray-50"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-[#001f3f]" />
+                          <span className="truncate">{t.title}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {first && (
+                            <>
+                              <a
+                                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                title="Preview file"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </a>
+                              <a
+                                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                download
+                                className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                title="Download file"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </>
+                          )}
+                          {isEditable && (
+                            <>
+                              <button
+                                type="button"
+                                className="shrink-0 rounded p-1 text-[#2563eb] hover:bg-gray-100"
+                                title="Edit template"
+                                onClick={() => { setTplModal({ type: "edit", template: t }); setOpenTpl(false); }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                className="shrink-0 rounded p-1 text-red-600 hover:bg-red-50"
+                                title="Delete template"
+                                onClick={() => { setOpenTpl(false); onDeleteTemplate(t); }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {isEditable && (
+                    <div className="mt-1 border-t border-gray-200 pt-2">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm font-semibold text-[#001f3f] hover:bg-gray-50"
+                        onClick={() => { setTplModal({ type: "add" }); setOpenTpl(false); }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Template
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            <Link href="#" className={desktopLink(false)} onClick={(e) => e.preventDefault()}>
+            <Link
+              href="/knowledge"
+              className={desktopLink(path?.startsWith("/knowledge") ?? false)}
+            >
               <Book className="h-4 w-4" />
               Knowledge Articles
             </Link>
+
+            <button
+              type="button"
+              className={desktopLink(false)}
+              onClick={() => {
+                setContactOpen(true);
+                setOpenCat(false);
+                setOpenTpl(false);
+              }}
+            >
+              <Mail className="h-4 w-4" />
+              Contact Us
+            </button>
           </div>
 
           {/* Mobile: brand */}
@@ -416,10 +580,10 @@ export function TopNav() {
                               <span className="truncate font-semibold">{p.title}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              {p.fileLink?.trim() && (
+                              {firstFileLink(p) && (
                                 <>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
+                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -429,7 +593,7 @@ export function TopNav() {
                                     <Eye className="h-4 w-4" />
                                   </a>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${p.fileLink}`}
+                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
                                     download
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                     title="Download file"
@@ -440,14 +604,24 @@ export function TopNav() {
                                 </>
                               )}
                               {isEditable && (
-                                <button
-                                  type="button"
-                                  className="shrink-0 rounded p-1 text-[#ffcc00]/80 hover:text-[#ffcc00]"
-                                  title="Edit category"
-                                  onClick={() => { setCatModal({ type: "edit", category: p }); setMobileOpen(false); }}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    className="shrink-0 rounded p-1 text-[#ffcc00]/80 hover:text-[#ffcc00]"
+                                    title="Edit category"
+                                    onClick={() => { setCatModal({ type: "edit", category: p }); setMobileOpen(false); }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="shrink-0 rounded p-1 text-red-300/80 hover:text-red-200"
+                                    title="Delete category"
+                                    onClick={() => { setMobileOpen(false); void onDeleteCategory(p); }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </>
                               )}
                             </span>
                           </div>
@@ -463,10 +637,10 @@ export function TopNav() {
                                     <span className="truncate">{c.title}</span>
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    {c.fileLink?.trim() && (
+                                    {firstFileLink(c) && (
                                       <>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
+                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -476,7 +650,7 @@ export function TopNav() {
                                           <Eye className="h-4 w-4" />
                                         </a>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "https://riskbuster-backend.onrender.com"}${c.fileLink}`}
+                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
                                           download
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                           title="Download file"
@@ -487,14 +661,24 @@ export function TopNav() {
                                       </>
                                     )}
                                     {isEditable && (
-                                      <button
-                                        type="button"
-                                        className="shrink-0 rounded p-1 text-[#ffcc00]/80 hover:text-[#ffcc00]"
-                                        title="Edit category"
-                                        onClick={() => { setCatModal({ type: "edit", category: c }); setMobileOpen(false); }}
-                                      >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </button>
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="shrink-0 rounded p-1 text-[#ffcc00]/80 hover:text-[#ffcc00]"
+                                          title="Edit category"
+                                          onClick={() => { setCatModal({ type: "edit", category: c }); setMobileOpen(false); }}
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="shrink-0 rounded p-1 text-red-300/80 hover:text-red-200"
+                                          title="Delete category"
+                                          onClick={() => { setMobileOpen(false); void onDeleteCategory(c); }}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      </>
                                     )}
                                   </span>
                                 </div>
@@ -531,27 +715,107 @@ export function TopNav() {
                 </button>
                 {mobileTplOpen && (
                   <div className="border-t border-white/10 bg-[#001630]">
-                    {templatesItems.map((t) => (
-                      <a
-                        key={t.label}
-                        href={t.href}
-                        className="block px-6 py-3 text-sm text-white/80 hover:text-white"
+                    {templates.map((t) => {
+                      const links =
+                        t.fileLinks && t.fileLinks.length > 0
+                          ? t.fileLinks
+                          : t.fileLink?.trim()
+                            ? [t.fileLink]
+                            : [];
+                      const first = links[0] || null;
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex items-center justify-between gap-2 px-6 py-3 text-sm text-white/80"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <FileText className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                            <span className="truncate">{t.title}</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {first && (
+                              <>
+                                <a
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="shrink-0 rounded p-1 text-white/70 hover:text-white"
+                                  title="Preview file"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </a>
+                                <a
+                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                  download
+                                  className="shrink-0 rounded p-1 text-white/70 hover:text-white"
+                                  title="Download file"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </>
+                            )}
+                            {isEditable && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-1 text-[#ffcc00]/80 hover:text-[#ffcc00]"
+                                  title="Edit template"
+                                  onClick={() => { setTplModal({ type: "edit", template: t }); setMobileOpen(false); }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-1 text-red-300/80 hover:text-red-200"
+                                  title="Delete template"
+                                  onClick={() => { setMobileOpen(false); onDeleteTemplate(t); }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {isEditable && (
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-6 py-3 text-sm font-semibold text-[#ffcc00]"
+                        onClick={() => { setTplModal({ type: "add" }); setMobileOpen(false); }}
                       >
-                        {t.label}
-                      </a>
-                    ))}
+                        <Plus className="h-4 w-4" />
+                        Add Template
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
               <Link
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center gap-3 px-4 py-3.5 text-sm font-semibold text-white/90"
+                href="/knowledge"
+                className={`flex items-center gap-3 px-4 py-3.5 text-sm font-semibold ${
+                  path?.startsWith("/knowledge") ? "text-[#ffcc00]" : "text-white/90"
+                }`}
               >
                 <Book className="h-4 w-4" />
                 Knowledge Articles
+                {path?.startsWith("/knowledge") && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ffcc00]" />
+                )}
               </Link>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setContactOpen(true);
+                  setMobileOpen(false);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-semibold text-white/90"
+              >
+                <Mail className="h-4 w-4" />
+                Contact Us
+              </button>
 
               {isEditable && email && (
                 <div className="flex items-center justify-between px-4 py-3.5">
@@ -587,6 +851,72 @@ export function TopNav() {
           />
         )}
       </Modal>
+
+      <Modal
+        open={tplModal != null}
+        title={tplModal?.type === "add" ? "Add Template" : "Edit Template"}
+        onClose={() => setTplModal(null)}
+        size="lg"
+      >
+        {tplModal && (
+          <EditTemplateForm
+            mode={tplModal.type}
+            initial={tplModal.type === "edit" ? tplModal.template : undefined}
+            onCancel={() => setTplModal(null)}
+            onSaved={() => {
+              loadTpl();
+              setTplModal(null);
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={contactOpen}
+        title="Contact Us"
+        onClose={() => setContactOpen(false)}
+        size="lg"
+      >
+        <ContactUsForm
+          onCancel={() => setContactOpen(false)}
+          onSuccess={(message) => setFlash(message)}
+          onError={(message) => setFlash(`Failed: ${message}`)}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        open={confirm != null}
+        title="Delete"
+        message={
+          confirm?.blocked
+            ? confirm.blockedReason || "This item cannot be deleted."
+            : confirm
+              ? `Are you sure you want to delete "${confirm.title}"?`
+              : ""
+        }
+        confirmText={confirm?.blocked ? "OK" : "Yes, delete"}
+        cancelText="Cancel"
+        tone={confirm?.blocked ? "default" : "danger"}
+        onCancel={() => setConfirm(null)}
+        onConfirm={async () => {
+          const c = confirm;
+          if (!c) return;
+          if (c.blocked) {
+            setConfirm(null);
+            return;
+          }
+          try {
+            await apiDelete(`/api/${c.kind === "category" ? "categories" : "templates"}/${c.id}`);
+            setFlash("Deleted successfully.");
+            if (c.kind === "category") loadCat();
+            else loadTpl();
+          } catch (e: unknown) {
+            setFlash(e instanceof Error ? e.message : "Delete failed");
+          } finally {
+            setConfirm(null);
+          }
+        }}
+      />
     </>
   );
 }

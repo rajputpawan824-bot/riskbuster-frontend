@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Globe, Pencil, Trash2 } from "lucide-react";
 import type { Conflict } from "@/types/models";
 
@@ -38,6 +39,19 @@ const pillByConflictType = (t: Conflict["conflictType"]) => {
   }
 };
 
+const pillByImpact = (i: Conflict["impact"]) => {
+  switch (i) {
+    case "global":
+      return "bg-indigo-100 text-indigo-900";
+    case "regional":
+      return "bg-sky-100 text-sky-900";
+    case "local":
+      return "bg-teal-100 text-teal-900";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 type Props = {
   conflict: Conflict;
   isEditable: boolean;
@@ -51,19 +65,25 @@ export function ConflictItemRow({ conflict, isEditable, onEdit, onDelete }: Prop
   const typeLabel = conflict.conflictType
     ? conflict.conflictType.charAt(0).toUpperCase() + conflict.conflictType.slice(1)
     : "Type";
+  const impactLabel = conflict.impact
+    ? conflict.impact.charAt(0).toUpperCase() + conflict.impact.slice(1)
+    : null;
 
   return (
-    <li className="flex min-h-[4.5rem] border-b border-gray-200 last:border-0">
+    <li className="flex min-h-[4.5rem] border-b border-gray-200 last:border-0 transition-colors hover:bg-gray-50/70">
       <div className={`w-1.5 shrink-0 self-stretch ${bar}`} aria-hidden />
       <div className="grid min-w-0 flex-1 grid-cols-1 items-start gap-3 py-3 pl-3 pr-2 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:pr-3">
-        <div className="min-w-0 pr-0 sm:pr-4">
-          <h3 className="font-bold text-[#001f3f]">{conflict.title}</h3>
+        <Link
+          href={`/conflicts/${conflict.id}`}
+          className="min-w-0 pr-0 outline-none focus-visible:ring-2 focus-visible:ring-[#001f3f]/30 sm:pr-4"
+        >
+          <h3 className="font-bold text-[#001f3f] hover:underline">{conflict.title}</h3>
           <p className="mt-0.5 line-clamp-2 text-sm text-gray-600">{conflict.description}</p>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
             <Globe className="h-3.5 w-3.5 shrink-0" />
             {conflict.country}
           </p>
-        </div>
+        </Link>
         <div className="flex flex-row items-center justify-between gap-2 sm:flex-col sm:items-end sm:justify-center">
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             <span
@@ -79,10 +99,20 @@ export function ConflictItemRow({ conflict, isEditable, onEdit, onDelete }: Prop
               className={`w-fit rounded-md px-2.5 py-0.5 text-xs font-semibold ${pillByConflictType(
                 conflict.conflictType
               )}`}
-              title="Conflict type"
+              title="Severity"
             >
               {typeLabel}
             </span>
+            {impactLabel && (
+              <span
+                className={`w-fit rounded-md px-2.5 py-0.5 text-xs font-semibold ${pillByImpact(
+                  conflict.impact
+                )}`}
+                title="Impact (geographic reach)"
+              >
+                {impactLabel}
+              </span>
+            )}
           </div>
           <time className="whitespace-nowrap text-xs text-gray-500" dateTime={conflict.date}>
             {fmt(conflict.date)}
