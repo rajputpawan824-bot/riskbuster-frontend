@@ -171,7 +171,7 @@ export default function KnowledgeArticlesPage() {
                   key={a.id}
                   className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
                 >
-                  <Link
+                  {/* <Link
                     href={`/knowledge/${a.id}`}
                     className="block aspect-[16/10] w-full overflow-hidden bg-gray-50"
                   >
@@ -188,7 +188,7 @@ export default function KnowledgeArticlesPage() {
                         <span className="text-xs">No image</span>
                       </div>
                     )}
-                  </Link>
+                  </Link> */}
 
                   <div className="flex min-h-0 flex-1 flex-col p-4">
                     <Link href={`/knowledge/${a.id}`} className="min-w-0">

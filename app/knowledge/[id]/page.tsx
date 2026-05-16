@@ -6,8 +6,8 @@ import {
   ArrowLeft,
   Calendar,
   Globe,
-  ImageOff,
-  Maximize2,
+  FileText,
+  Download,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -15,7 +15,6 @@ import { MainShell } from "@/components/site/MainShell";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FlashMessage } from "@/components/ui/FlashMessage";
-import { Lightbox } from "@/components/ui/Lightbox";
 import { RichTextView } from "@/components/ui/RichTextView";
 import { KnowledgeArticleFormModalBody } from "@/components/knowledge/KnowledgeArticleFormModalBody";
 import { useAuth } from "@/context/AuthContext";
@@ -45,7 +44,6 @@ export default function KnowledgeArticleDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -71,13 +69,12 @@ export default function KnowledgeArticleDetailPage() {
     }
   };
 
-  const images =
-    article?.imageLinks && article.imageLinks.length > 0
-      ? article.imageLinks
-      : article?.imageLink
-      ? [article.imageLink]
+  const files =
+    article?.fileLinks && article.fileLinks.length > 0
+      ? article.fileLinks
+      : article?.fileLink
+      ? [article.fileLink]
       : [];
-  const imageUrls = images.map((u) => `${API_BASE}${u}`);
 
   return (
     <MainShell>
@@ -136,45 +133,35 @@ export default function KnowledgeArticleDetailPage() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
-              {/* Left — image gallery (click any image to open in lightbox) */}
+              {/* Left — files list */}
               <div className="bg-gray-50 p-4 sm:p-5 md:p-6">
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Images
-                  </h2>
-                  {images.length > 0 && (
-                    <span className="text-xs text-gray-500">
-                      {images.length} {images.length === 1 ? "image" : "images"}
-                    </span>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Files</h2>
+                  {files.length > 0 && (
+                    <span className="text-xs text-gray-500">{files.length} {files.length === 1 ? "file" : "files"}</span>
                   )}
                 </div>
 
-                {images.length === 0 ? (
+                {files.length === 0 ? (
                   <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-200 bg-white text-gray-400">
-                    <ImageOff className="h-10 w-10" />
-                    <p className="text-sm">No images uploaded</p>
+                    <FileText className="h-10 w-10" />
+                    <p className="text-sm">No files uploaded</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {images.map((url, i) => (
-                      <button
-                        key={url}
-                        type="button"
-                        onClick={() => setLightboxIndex(i)}
-                        className="group relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-white transition hover:border-[#001f3f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#001f3f]/40"
-                        title="Open image"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={`${API_BASE}${url}`}
-                          alt={`${article.title} — image ${i + 1}`}
-                          className="h-full w-full object-cover transition group-hover:scale-[1.03]"
-                        />
-                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
-                          <Maximize2 className="h-5 w-5 text-white drop-shadow" />
-                        </span>
-                      </button>
-                    ))}
+                  <div className="space-y-2">
+                    {files.map((url) => {
+                      const fileName = url.split("/").pop();
+
+                      return (
+                        <div key={url} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2 text-sm">
+                          <a href={`${API_BASE}${url}`} target="_blank" rel="noreferrer" className="flex-1 truncate text-left text-sm text-gray-800 underline">{fileName}</a>
+                          <a href={`${API_BASE}${url}`} download className="inline-flex items-center gap-2 rounded bg-[#001f3f] px-2 py-1 text-xs font-semibold text-white hover:bg-[#002b52]">
+                            <Download className="h-3 w-3" />
+                            Download
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -225,15 +212,6 @@ export default function KnowledgeArticleDetailPage() {
           </div>
         )}
       </article>
-
-      {/* Image lightbox */}
-      <Lightbox
-        open={lightboxIndex != null}
-        images={imageUrls}
-        startIndex={lightboxIndex ?? 0}
-        onClose={() => setLightboxIndex(null)}
-        alt={article?.title}
-      />
 
       {/* Edit modal */}
       <Modal

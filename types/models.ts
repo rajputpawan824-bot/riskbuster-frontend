@@ -53,6 +53,10 @@ export type KnowledgeArticle = {
   postedDate: string;
   imageLink?: string;
   imageLinks?: string[];
+  /** Primary uploaded file (kept for backward compatibility). */
+  fileLink?: string;
+  /** All uploaded files for this article. */
+  fileLinks?: string[];
   createdAt?: string;
   updatedAt?: string;
 };
