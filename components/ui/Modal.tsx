@@ -52,7 +52,7 @@ export function Modal({
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between border-b px-4 py-3">
+        <div className="shrink-0 flex items-center justify-between border-b px-4 py-3">
           <h2 className="text-base font-bold text-[#001f3f]">{title}</h2>
           <button onClick={onClose}>
             <X className="h-5 w-5 text-gray-500" />
@@ -60,8 +60,8 @@ export function Modal({
         </div>
 
         {/* Body (NO scroll, fits inside) */}
-        <div className="flex-1 overflow-hidden px-4 py-3">
-          <div className="h-full flex flex-col justify-between">
+        <div className="flex-1 flex flex-col overflow-auto">
+          <div className="flex flex-col grow overflow-auto">
             {children}
           </div>
         </div>

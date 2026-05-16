@@ -106,87 +106,11 @@ export function KnowledgeArticleFormModalBody({
   };
 
   return (
-    <form onSubmit={submit} className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="flex gap-6">
+    <form onSubmit={submit} className="flex flex-col overflow-auto">
+      <div className="overflow-auto flex flex-col px-4 py-2">
+        <div className="flex flex-col gap-6">
           {/* Left files panel */}
-          <aside className="w-56 shrink-0">
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[#001f3f]">
-              <FilePlus className="h-4 w-4" />
-              Files
-            </label>
-
-            <div className="mt-2 space-y-2">
-              {/* existing files (filter out removed) */}
-              {existingFiles.length > 0 &&
-                existingFiles
-                  .filter((u) => !removedExistingFiles.includes(u))
-                  .map((url) => {
-                    const fileName = url.split("/").pop();
-
-                    return (
-                      <div key={url} className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                        <a
-                          href={`${API_BASE}${url}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex-1 truncate text-left text-sm text-gray-800 underline"
-                        >
-                          {fileName}
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={() => setRemovedExistingFiles((prev) => [...prev, url])}
-                          title="Remove"
-                          className="rounded p-1 text-red-600 hover:bg-red-50"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-
-              {/* newly selected files with download and remove */}
-              {files.length > 0 && (
-                <div className="space-y-1">
-                  {files.map((f, i) => {
-                    const key = `${f.name}-${i}`;
-                    const url = previews[key];
-
-                    return (
-                      <div key={key} className="flex items-center gap-2 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
-                        <a href={url} download={f.name} className="flex-1 truncate text-left text-sm text-blue-800 underline">
-                          {f.name}
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                          title="Remove"
-                          className="rounded p-1 hover:bg-blue-100"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* upload input */}
-              <input
-                className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                type="file"
-                multiple
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              />
-
-              <p className="mt-1 text-xs text-gray-500">
-                Optional. Existing files are kept; new uploads are appended.
-              </p>
-            </div>
-          </aside>
+          
 
           {/* Main form fields */}
           <div className="flex-1 space-y-4">
@@ -263,10 +187,88 @@ export function KnowledgeArticleFormModalBody({
               </p>
             </div>
           </div>
+
+          <div className="shrink-0">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-[#001f3f]">
+              <FilePlus className="h-4 w-4" />
+              Files
+            </label>
+
+            <div className="mt-2 space-y-2">
+              {/* existing files (filter out removed) */}
+              {existingFiles.length > 0 &&
+                existingFiles
+                  .filter((u) => !removedExistingFiles.includes(u))
+                  .map((url) => {
+                    const fileName = url.split("/").pop();
+
+                    return (
+                      <div key={url} className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                        <a
+                          href={`${API_BASE}${url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 truncate text-left text-sm text-gray-800 underline"
+                        >
+                          {fileName}
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => setRemovedExistingFiles((prev) => [...prev, url])}
+                          title="Remove"
+                          className="rounded p-1 text-red-600 hover:bg-red-50"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+              {/* newly selected files with download and remove */}
+              {files.length > 0 && (
+                <div className="space-y-1">
+                  {files.map((f, i) => {
+                    const key = `${f.name}-${i}`;
+                    const url = previews[key];
+
+                    return (
+                      <div key={key} className="flex items-center gap-2 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
+                        <a href={url} download={f.name} className="flex-1 truncate text-left text-sm text-blue-800 underline">
+                          {f.name}
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          title="Remove"
+                          className="rounded p-1 hover:bg-blue-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* upload input */}
+              <input
+                className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                type="file"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              />
+
+              <p className="mt-1 text-xs text-gray-500">
+                Optional. Existing files are kept; new uploads are appended.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="mt-auto flex flex-wrap justify-end gap-3 border-t border-gray-100 px-3 py-2">
         <button
           type="button"
           onClick={onCancel}

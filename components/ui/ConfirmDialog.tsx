@@ -23,9 +23,11 @@ export function ConfirmDialog({
 }: Props) {
   return (
     <Modal open={open} title={title} onClose={onCancel}>
-      <div className="flex h-full flex-col justify-between">
-        <p className="text-sm text-gray-700">{message}</p>
-        <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="flex flex-col grow">
+        <div className="px-4 py-2 grid place-content-center">
+          <p className="text-sm text-gray-700">{message}</p>
+        </div>
+        <div className="mt-auto flex justify-end gap-3 border-t border-gray-100 px-4 py-2">
           <button
             type="button"
             onClick={onCancel}

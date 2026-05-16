@@ -90,183 +90,185 @@ export function ConflictFormModalBody({ mode, initial, onCancel, onSubmit }: Pro
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="flex flex-col overflow-auto grow">
       {err && (
         <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {err}
         </p>
       )}
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Title <span className="text-red-600">*</span>
-        </label>
-        <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter conflict title"
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Description <span className="text-red-600">*</span>
-        </label>
-        <textarea
-          className="mt-1 min-h-[88px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter a brief description of the conflict..."
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Country <span className="text-red-600">*</span>
-        </label>
-        <select
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={country}
-          onChange={(e) => setCountry(e.target.value)}
-          required
-        >
-          <option value="">Select Country</option>
-          {COUNTRY_FORM_OPTIONS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Status <span className="text-red-600">*</span>
-        </label>
-        <select
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as ConflictStatus)}
-        >
-          {statuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Severity <span className="text-red-600">*</span>
-        </label>
-        <select
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={conflictType}
-          onChange={(e) => setConflictType(e.target.value as ConflictType)}
-        >
-          {conflictTypes.map((t) => (
-            <option key={t} value={t}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </option>
-          ))}
-        </select>
-        <p className="mt-0.5 text-xs text-gray-500">
-          How severe the conflict is (low → critical).
-        </p>
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">Impact (Geographic Reach)</label>
-        <select
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={impact}
-          onChange={(e) => setImpact(e.target.value as Impact | "")}
-        >
-          <option value="">— Not set —</option>
-          {impacts.map((i) => (
-            <option key={i} value={i}>
-              {i.charAt(0).toUpperCase() + i.slice(1)}
-            </option>
-          ))}
-        </select>
-        <p className="mt-0.5 text-xs text-gray-500">
-          How far the conflict&apos;s impact reaches: Local (one country), Regional (neighbouring
-          countries), Global (worldwide).
-        </p>
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Date <span className="text-red-600">*</span>
-        </label>
-        <div className="relative mt-1">
-          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <div className="space-y-4 px-4 py-2 overflow-auto grow">
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Title <span className="text-red-600">*</span>
+          </label>
           <input
-            type="date"
-            className="w-full rounded border border-gray-300 py-2 pl-10 pr-3 text-sm"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter conflict title"
             required
           />
         </div>
-        <p className="mt-0.5 text-xs text-gray-500">Select Date</p>
-      </div>
-      <div>
-        <label className="flex items-center gap-1.5 text-sm font-medium text-[#001f3f]">
-          <ImagePlus className="h-4 w-4" />
-          Images
-        </label>
-        {existingImages.length > 0 && (
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {existingImages.map((url) => (
-              <a
-                key={url}
-                href={`${API_BASE}${url}`}
-                target="_blank"
-                rel="noreferrer"
-                className="group block overflow-hidden rounded border border-gray-200 bg-gray-50"
-                title="Open image"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`${API_BASE}${url}`}
-                  alt="Conflict"
-                  className="h-20 w-full object-cover transition group-hover:opacity-90"
-                />
-              </a>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Description <span className="text-red-600">*</span>
+          </label>
+          <textarea
+            className="mt-1 min-h-[88px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter a brief description of the conflict..."
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Country <span className="text-red-600">*</span>
+          </label>
+          <select
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            required
+          >
+            <option value="">Select Country</option>
+            {COUNTRY_FORM_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Status <span className="text-red-600">*</span>
+          </label>
+          <select
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ConflictStatus)}
+          >
+            {statuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Severity <span className="text-red-600">*</span>
+          </label>
+          <select
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={conflictType}
+            onChange={(e) => setConflictType(e.target.value as ConflictType)}
+          >
+            {conflictTypes.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
+          </select>
+          <p className="mt-0.5 text-xs text-gray-500">
+            How severe the conflict is (low → critical).
+          </p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">Impact (Geographic Reach)</label>
+          <select
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={impact}
+            onChange={(e) => setImpact(e.target.value as Impact | "")}
+          >
+            <option value="">— Not set —</option>
+            {impacts.map((i) => (
+              <option key={i} value={i}>
+                {i.charAt(0).toUpperCase() + i.slice(1)}
+              </option>
+            ))}
+          </select>
+          <p className="mt-0.5 text-xs text-gray-500">
+            How far the conflict&apos;s impact reaches: Local (one country), Regional (neighbouring
+            countries), Global (worldwide).
+          </p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Date <span className="text-red-600">*</span>
+          </label>
+          <div className="relative mt-1">
+            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date"
+              className="w-full rounded border border-gray-300 py-2 pl-10 pr-3 text-sm"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
           </div>
-        )}
-        <input
-          className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => setImages(Array.from(e.target.files || []))}
-        />
-        {images.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {images.map((f, i) => (
-              <span
-                key={`${f.name}-${i}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-blue-800"
-              >
-                {f.name}
-                <button
-                  type="button"
-                  onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="rounded-full p-0.5 hover:bg-blue-100"
-                  title="Remove"
+          <p className="mt-0.5 text-xs text-gray-500">Select Date</p>
+        </div>
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-[#001f3f]">
+            <ImagePlus className="h-4 w-4" />
+            Images
+          </label>
+          {existingImages.length > 0 && (
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {existingImages.map((url) => (
+                <a
+                  key={url}
+                  href={`${API_BASE}${url}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group block overflow-hidden rounded border border-gray-200 bg-gray-50"
+                  title="Open image"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="mt-1 text-xs text-gray-500">
-          Optional. Pick one or more images to attach. Existing images are kept; new uploads are
-          appended.
-        </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`${API_BASE}${url}`}
+                    alt="Conflict"
+                    className="h-20 w-full object-cover transition group-hover:opacity-90"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+          <input
+            className="mt-2 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => setImages(Array.from(e.target.files || []))}
+          />
+          {images.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {images.map((f, i) => (
+                <span
+                  key={`${f.name}-${i}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-blue-800"
+                >
+                  {f.name}
+                  <button
+                    type="button"
+                    onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="rounded-full p-0.5 hover:bg-blue-100"
+                    title="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            Optional. Pick one or more images to attach. Existing images are kept; new uploads are
+            appended.
+          </p>
+        </div>
       </div>
-      <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 px-4 py-2">
         <button
           type="button"
           onClick={onCancel}

@@ -65,33 +65,34 @@ export function EditTemplateForm({ mode, initial, onCancel, onSaved }: Props) {
         : [];
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4 flex flex-col grow overflow-auto">
       {err && (
         <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>
       )}
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Title <span className="text-red-600">*</span>
-        </label>
-        <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Description <span className="text-red-600">*</span>
-        </label>
-        <textarea
-          className="mt-1 min-h-[100px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-        />
-      </div>
-      <div>
+      <div className="px-4 py-2 overflow-auto">
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Title <span className="text-red-600">*</span>
+          </label>
+          <input
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Description <span className="text-red-600">*</span>
+          </label>
+          <textarea
+            className="mt-1 min-h-[100px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </div>
+        <div>
         <label className="text-sm font-medium text-[#001f3f]">Upload Files</label>
         {currentLinks.length > 0 && (
           <div className="mt-1 space-y-1 text-xs text-gray-600">
@@ -122,8 +123,8 @@ export function EditTemplateForm({ mode, initial, onCancel, onSaved }: Props) {
           Choose one or more files to upload (optional). Existing uploads are kept.
         </p>
       </div>
-
-      <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+        </div>
+      <div className="mt-auto flex justify-end gap-3 border-t border-gray-100 px-3 py-2">
         <button
           type="button"
           onClick={onCancel}

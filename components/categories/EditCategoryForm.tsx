@@ -90,101 +90,104 @@ export function EditCategoryForm({ mode, initial, allCategories, onCancel, onSav
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4 flex flex-col grow overflow-auto">
       {err && (
         <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {err}
         </p>
       )}
-      <div>
-        <label htmlFor="cat-parent" className="text-sm font-medium text-[#001f3f]">
-          Parent category
-        </label>
-        <select
-          id="cat-parent"
-          className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={parentId}
-          onChange={(e) => setParentId(e.target.value)}
-        >
-          <option value="">None — top-level category</option>
-          {parentOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-500">
-          If you pick a category above, this entry is saved as a <strong>subcategory</strong> of that
-          parent. Leave &quot;None&quot; for a new top-level category.
-        </p>
+      <div className="px-4 py-2 overflow-auto grow">
+        <div>
+          <label htmlFor="cat-parent" className="text-sm font-medium text-[#001f3f]">
+            Parent category
+          </label>
+          <select
+            id="cat-parent"
+            className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            value={parentId}
+            onChange={(e) => setParentId(e.target.value)}
+          >
+            <option value="">None — top-level category</option>
+            {parentOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            If you pick a category above, this entry is saved as a <strong>subcategory</strong> of that
+            parent. Leave &quot;None&quot; for a new top-level category.
+          </p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Title <span className="text-red-600">*</span>
+          </label>
+          <input
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Credit To <span className="text-red-600">*</span>
+          </label>
+          <input
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={creditTo}
+            onChange={(e) => setCreditTo(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">
+            Description <span className="text-red-600">*</span>
+          </label>
+          <textarea
+            className="mt-1 min-h-[100px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+        </div>
+      
+        <div>
+          <label className="text-sm font-medium text-[#001f3f]">Upload Files</label>
+          {!!(initial?.fileLinks?.length || initial?.fileLink?.trim()) && (
+            <div className="mt-1 space-y-1 text-xs text-gray-600">
+              <p className="font-medium">Current files:</p>
+              <ul className="list-disc pl-5">
+                {(initial?.fileLinks?.length ? initial.fileLinks : initial?.fileLink?.trim() ? [initial.fileLink] : []).map(
+                  (l) => (
+                    <li key={l}>
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${l}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-700 underline"
+                      >
+                        View file
+                      </a>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+          )}
+          <input
+            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            type="file"
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Choose one or more files to upload (optional). If you don’t select files, existing uploads are kept.
+          </p>
+        </div>
       </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Title <span className="text-red-600">*</span>
-        </label>
-        <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Credit To <span className="text-red-600">*</span>
-        </label>
-        <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={creditTo}
-          onChange={(e) => setCreditTo(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">
-          Description <span className="text-red-600">*</span>
-        </label>
-        <textarea
-          className="mt-1 min-h-[100px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium text-[#001f3f]">Upload Files</label>
-        {!!(initial?.fileLinks?.length || initial?.fileLink?.trim()) && (
-          <div className="mt-1 space-y-1 text-xs text-gray-600">
-            <p className="font-medium">Current files:</p>
-            <ul className="list-disc pl-5">
-              {(initial?.fileLinks?.length ? initial.fileLinks : initial?.fileLink?.trim() ? [initial.fileLink] : []).map(
-                (l) => (
-                  <li key={l}>
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${l}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-700 underline"
-                    >
-                      View file
-                    </a>
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
-        )}
-        <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          type="file"
-          multiple
-          onChange={(e) => setFiles(Array.from(e.target.files || []))}
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          Choose one or more files to upload (optional). If you don’t select files, existing uploads are kept.
-        </p>
-      </div>
-      <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+      <div className="mt-auto flex justify-end gap-3 border-t border-gray-100 px-3 py-2">
         <button
           type="button"
           onClick={onCancel}
