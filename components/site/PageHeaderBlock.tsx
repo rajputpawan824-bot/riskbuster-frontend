@@ -7,7 +7,7 @@ export function PageHeaderBlock() {
         <div className="flex items-center gap-4">
           <BrandLogo />
           <p className="pl-4 mt-2 text-xs font-semibold tracking-[0.2em] text-[#001f3f] border-l-2 border-[#001f3f]">
-            SECURITY THREAT AND RISK MANAGEMENT
+           Analyzing Threats, Identifying Risks and Mitigation
           </p>
         </div>
       </div>

@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void;
   children: React.ReactNode;
   size?: "md" | "lg";
+  bodyClassName?: string;
 };
 
 export function Modal({
@@ -17,6 +18,7 @@ export function Modal({
   onClose,
   children,
   size = "md",
+  bodyClassName,
 }: Props) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,16 @@ export function Modal({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
+
+  // Prevent body scroll while the modal is open.
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   // outside click
   const handleOutside = (e: React.MouseEvent) => {
@@ -61,7 +73,7 @@ export function Modal({
 
         {/* Body (NO scroll, fits inside) */}
         <div className="flex-1 flex flex-col overflow-auto">
-          <div className="flex flex-col grow overflow-auto">
+          <div className={`flex flex-col grow overflow-auto ${bodyClassName ?? ""}`}>
             {children}
           </div>
         </div>
