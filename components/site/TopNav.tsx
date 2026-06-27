@@ -75,9 +75,9 @@ export function TopNav() {
       childrenByParent.set(pid, arr);
     }
     for (const [, arr] of childrenByParent) {
-      arr.sort((a, b) => a.title.localeCompare(b.title));
+      arr.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
     }
-    parents.sort((a, b) => a.title.localeCompare(b.title));
+    parents.sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
     return { parents, childrenByParent };
   }, [categories]);
 

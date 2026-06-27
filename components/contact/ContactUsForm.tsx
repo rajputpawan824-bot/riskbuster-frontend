@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import emailjs from "@emailjs/browser";
+import { apiPost } from "@/lib/api";
 import { CheckCircle2 } from "lucide-react";
-import { COUNTRY_FORM_OPTIONS } from "@/lib/countries";
+import { SearchableCountrySelect } from "../ui/SearchableCountrySelect";
 
 type Props = {
   onCancel: () => void;
@@ -33,47 +33,16 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null);
-
-    const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-    const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-    const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-    const toEmail = process.env.NEXT_PUBLIC_CONTACT_TO_EMAIL || "s.kumar@riskbusters.co.in";
-
-    if (!serviceId || !templateId || !publicKey) {
-      const message =
-        "EmailJS is not configured. Please add service ID, template ID, and public key in web/.env.local.";
-      setErr(message);
-      onError(message);
-      return;
-    }
-
     setLoading(true);
     try {
-      await emailjs.send(
-        serviceId,
-        templateId,
-        {
-          to_email: toEmail,
-          first_name: form.firstName.trim(),
-          last_name: form.lastName.trim(),
-          from_name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-          reply_to: form.email.trim(),
-          email: form.email.trim(),
-          country: form.country,
-          subject: form.subject.trim(),
-          description: form.description.trim(),
-          message: form.description.trim(),
-        },
-        { publicKey }
-      );
-
+      await apiPost("/api/contact", form);
       const displayName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
       setSubmittedName(displayName || "there");
       setForm(initialForm);
       onSuccess("Contact request sent successfully.");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      const message = "Failed to send contact request. Please try again.";
+      const message = error?.message || "Failed to send contact request. Please try again.";
       setErr(message);
       onError(message);
     } finally {
@@ -156,19 +125,11 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
             <label className="text-sm font-medium text-[#001f3f]">
               Country <span className="text-red-600">*</span>
             </label>
-            <select
-              className="mt-1 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+            <SearchableCountrySelect
               value={form.country}
-              onChange={(e) => setField("country", e.target.value)}
+              onChange={(val) => setField("country", val)}
               required
-            >
-              <option value="">Select Country</option>
-              {COUNTRY_FORM_OPTIONS.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         </div>
 
