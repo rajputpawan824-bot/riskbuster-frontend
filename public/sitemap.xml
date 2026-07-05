@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+  xsi:schemaLocation="
+    http://www.sitemaps.org/schemas/sitemap/0.9
+    http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- ============================================================
+       RiskBusters – Site Map
+       Website  : https://www.riskbusters.co.in
+       Generated: 2026-07-04
+       Standard : Sitemaps Protocol 0.9 (Google / Bing / Yahoo)
+  ============================================================ -->
+
+  <!-- ── HOME ─────────────────────────────────────────────────── -->
+  <url>
+    <loc>https://www.riskbusters.co.in/</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- ── KNOWLEDGE ARTICLES (listing) ─────────────────────────── -->
+  <url>
+    <loc>https://www.riskbusters.co.in/knowledge</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- ── CONFLICTS (listing) ───────────────────────────────────── -->
+  <url>
+    <loc>https://www.riskbusters.co.in/conflicts</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- ── ABOUT ─────────────────────────────────────────────────── -->
+  <url>
+    <loc>https://www.riskbusters.co.in/about</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ── LOGIN ─────────────────────────────────────────────────── -->
+  <url>
+    <loc>https://www.riskbusters.co.in/login</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>
