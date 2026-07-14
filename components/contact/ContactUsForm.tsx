@@ -52,11 +52,11 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
 
   if (submittedName) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-4 py-8 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-9 w-9 text-emerald-600" />
+      <div className="flex h-full flex-col items-center justify-center px-4 py-6 text-center">
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+          <CheckCircle2 className="h-8 w-8 text-emerald-600" />
         </div>
-        <h3 className="text-xl font-bold text-[#001f3f]">Thank you, {submittedName}!</h3>
+        <h3 className="text-lg font-bold text-[#001f3f] sm:text-xl">Thank you, {submittedName}!</h3>
         <p className="mt-2 max-w-sm text-sm text-gray-600">
           Your message has been sent successfully. Our team will get back to you shortly.
         </p>
@@ -66,7 +66,7 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
             setSubmittedName(null);
             onCancel();
           }}
-          className="mt-6 rounded bg-[#001f3f] px-5 py-2 text-sm font-semibold text-white hover:bg-[#002b52]"
+          className="mt-5 rounded bg-[#001f3f] px-5 py-2 text-sm font-semibold text-white hover:bg-[#002b52]"
         >
           Close
         </button>
@@ -75,17 +75,17 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col overflow-auto grow">
-      <div className="grow space-y-4 overflow-auto px-3 py-2">
+    <form onSubmit={submit} className="flex flex-col">
+      <div className="space-y-3 px-2 py-1 sm:px-3 sm:py-2">
         {err && (
           <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
             {err}
           </p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[#001f3f]">
+            <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
               First Name <span className="text-red-600">*</span>
             </label>
             <input
@@ -96,7 +96,7 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-[#001f3f]">
+            <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
               Last Name <span className="text-red-600">*</span>
             </label>
             <input
@@ -108,9 +108,9 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[#001f3f]">
+            <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
               Email <span className="text-red-600">*</span>
             </label>
             <input
@@ -122,7 +122,7 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-[#001f3f]">
+            <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
               Country <span className="text-red-600">*</span>
             </label>
             <SearchableCountrySelect
@@ -134,7 +134,7 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[#001f3f]">
+          <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
             Subject <span className="text-red-600">*</span>
           </label>
           <input
@@ -146,11 +146,11 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[#001f3f]">
+          <label className="text-xs font-semibold text-[#001f3f] sm:text-sm">
             Description <span className="text-red-600">*</span>
           </label>
           <textarea
-            className="mt-1 min-h-[130px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="mt-1 min-h-[100px] w-full rounded border border-gray-300 px-3 py-2 text-sm"
             value={form.description}
             onChange={(e) => setField("description", e.target.value)}
             required
@@ -158,7 +158,7 @@ export function ContactUsForm({ onCancel, onSuccess, onError }: Props) {
         </div>
       </div>
 
-      <div className="mt-auto flex flex-wrap justify-end gap-3 border-t border-gray-100 px-4 py-2">
+      <div className="mt-2 flex flex-wrap justify-end gap-3 border-t border-gray-100 px-2 py-2 sm:px-3">
         <button
           type="button"
           onClick={onCancel}

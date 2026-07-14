@@ -77,7 +77,7 @@ export default function KnowledgeArticleDetailPage() {
       : [];
 
   return (
-    <MainShell>
+    <MainShell showHeader={true} showNav={false}>
       <FlashMessage
         message={flash}
         tone={flash?.toLowerCase().includes("fail") ? "error" : "success"}

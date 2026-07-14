@@ -1,10 +1,10 @@
-import { MainShell } from "@/components/site/MainShell";
-import { OngoingDashboard } from "@/components/dashboard/OngoingDashboard";
+import { HomeWorkspace } from "@/components/site/HomeWorkspace";
+import { Suspense } from "react";
 
 export default function Home() {
   return (
-    <MainShell>
-      <OngoingDashboard />
-    </MainShell>
+    <Suspense fallback={null}>
+      <HomeWorkspace />
+    </Suspense>
   );
 }

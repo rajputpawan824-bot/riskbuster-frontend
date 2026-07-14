@@ -4,7 +4,7 @@ import Link from "next/link";
 import { MainShell } from "@/components/site/MainShell";
 
 export const metadata: Metadata = {
-  title: "About Us — RiskBusters",
+  title: "Introduction — RiskBusters",
   description:
     "Riskbusters.co.in: a knowledge-driven platform for Security Threat and Risk Management — insights, founder background, and what the platform offers.",
 };
@@ -75,7 +75,7 @@ export default function AboutPage() {
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-bold tracking-tight text-[#001f3f] sm:text-3xl md:text-4xl">
-                About Us
+                Introduction
               </h1>
               <p className="mt-4 text-sm leading-relaxed text-gray-700 sm:text-base">
                 Welcome to{" "}

@@ -288,7 +288,7 @@ export function OngoingDashboard() {
           onEdit={(c) => setCountryModal({ type: "edit", country: c })}
           onDelete={(c) => setCountryConfirm(c)}
         />
-        <section className="min-w-0 flex-1">
+        <section className="min-w-0 flex-1 hidden">
           <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-bold text-[#001f3f]">Top 10 Conflicts</h2>
             <label className="flex items-center gap-2 text-sm text-gray-700">

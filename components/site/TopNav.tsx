@@ -172,13 +172,13 @@ export function TopNav() {
           {/* Desktop nav links */}
           <div className="hidden min-w-0 flex-1 flex-wrap items-stretch pr-2 lg:flex">
             <Link href="/" className={desktopLink(isHome)}>
-              <Home className="h-4 w-4" />
-              Home
+              <User className="h-4 w-4" />
+              Introduction
             </Link>
 
-            <Link href="/about" className={desktopLink(isAbout)}>
+            <Link href="/about" className={`${desktopLink(isAbout)} hidden`}>
               <User className="h-4 w-4" />
-              About
+              Introduction
             </Link>
 
             {/* Security Risk Categories dropdown */}
@@ -541,19 +541,19 @@ export function TopNav() {
                   isHome ? "text-[#ffcc00]" : "text-white/90"
                 }`}
               >
-                <Home className="h-4 w-4" />
-                Home
+                <User className="h-4 w-4" />
+                Introduction
                 {isHome && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ffcc00]" />}
               </Link>
 
               <Link
                 href="/about"
-                className={`flex items-center gap-3 px-4 py-3.5 text-sm font-semibold ${
+                className={`hidden flex items-center gap-3 px-4 py-3.5 text-sm font-semibold ${
                   isAbout ? "text-[#ffcc00]" : "text-white/90"
                 }`}
               >
                 <User className="h-4 w-4" />
-                About
+                Introduction
                 {isAbout && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ffcc00]" />}
               </Link>
 
