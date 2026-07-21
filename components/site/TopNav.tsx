@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Book,
   ChevronDown,
@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiDelete, apiGet } from "@/lib/api";
+import { startAuthenticatedDownload } from "@/lib/download";
 import type { Category, Template } from "@/types/models";
 import { Modal } from "@/components/ui/Modal";
 import { EditCategoryForm } from "@/components/categories/EditCategoryForm";
@@ -40,7 +41,8 @@ type TplModalMode = { type: "edit"; template: Template } | { type: "add" } | nul
 
 export function TopNav() {
   const path = usePathname();
-  const { isEditable, logout, email } = useAuth();
+  const searchParams = useSearchParams();
+  const { isEditable, logout, email, setPendingDownload } = useAuth();
   const [openCat, setOpenCat] = useState(false);
   const [openTpl, setOpenTpl] = useState(false);
   const [openCatParentId, setOpenCatParentId] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export function TopNav() {
   } | null>(null);
   const rCat = useRef<HTMLDivElement | null>(null);
   const rTpl = useRef<HTMLDivElement | null>(null);
+  const isWorkspaceKnowledge = path === "/" && searchParams.get("section") === "knowledge";
 
   const catTree = useMemo(() => {
     const parents = categories.filter((c) => !c.parentId);
@@ -85,6 +88,24 @@ export function TopNav() {
     const links = c.fileLinks && c.fileLinks.length > 0 ? c.fileLinks : c.fileLink?.trim() ? [c.fileLink] : [];
     return links[0] || null;
   };
+
+  const fileHref = (fileLink: string, download = false) => {
+    const base = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${fileLink}`;
+    return download ? `${base}${base.includes("?") ? "&" : "?"}download=1` : base;
+  };
+
+  const downloadTarget = (
+    fileLink: string,
+    documentType: string,
+    documentId: string,
+    title: string
+  ) => ({
+    href: fileHref(fileLink, true),
+    documentType,
+    documentId,
+    title,
+    fileLink,
+  });
 
   // Only render interactive/stateful UI after mount to avoid SSR mismatch
   useEffect(() => {
@@ -225,27 +246,22 @@ export function TopNav() {
                           </span>
                           <span className="flex items-center gap-1">
                             {firstFileLink(p) && (
-                              <>
-                                <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                  title="Preview file"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </a>
-                                <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
-                                  download
-                                  className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                  title="Download file"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </>
+                              <a
+                                href={fileHref(firstFileLink(p)!, true)}
+                                download
+                                className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                title="Download file"
+                                 onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const target = downloadTarget(firstFileLink(p)!, "category", p.id, p.title);
+                                  startAuthenticatedDownload(target).then((success) => {
+                                    if (!success) setPendingDownload(target);
+                                  });
+                                }}
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
                             )}
                             {hasKids && <ChevronRight className="h-4 w-4 text-gray-400" />}
                             {isEditable && (
@@ -295,7 +311,7 @@ export function TopNav() {
                                   {firstFileLink(c) && (
                                     <>
                                       <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
+                                        href={fileHref(firstFileLink(c)!)}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -304,15 +320,22 @@ export function TopNav() {
                                       >
                                         <Eye className="h-4 w-4" />
                                       </a>
-                                      <a
-                                        href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
-                                        download
-                                        className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                        title="Download file"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <Download className="h-4 w-4" />
-                                      </a>
+                                <a
+                                  href={fileHref(firstFileLink(c)!, true)}
+                                  download
+                                  className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                  title="Download file"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const target = downloadTarget(firstFileLink(c)!, "category", c.id, c.title);
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
                                     </>
                                   )}
                                   {isEditable && (
@@ -405,7 +428,7 @@ export function TopNav() {
                           {first && (
                             <>
                               <a
-                                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                href={fileHref(first)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -414,10 +437,18 @@ export function TopNav() {
                                 <Eye className="h-4 w-4" />
                               </a>
                               <a
-                                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                href={fileHref(first, true)}
                                 download
                                 className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                 title="Download file"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const target = downloadTarget(first, "template", t.id, t.title);
+                                  startAuthenticatedDownload(target).then((success) => {
+                                    if (!success) setPendingDownload(target);
+                                  });
+                                }}
                               >
                                 <Download className="h-4 w-4" />
                               </a>
@@ -464,8 +495,8 @@ export function TopNav() {
             </div>
 
             <Link
-              href="/knowledge"
-              className={desktopLink(path?.startsWith("/knowledge") ?? false)}
+              href="/?section=knowledge"
+              className={desktopLink(isWorkspaceKnowledge)}
             >
               <Book className="h-4 w-4" />
               Knowledge Articles
@@ -583,7 +614,7 @@ export function TopNav() {
                               {firstFileLink(p) && (
                                 <>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
+                                    href={fileHref(firstFileLink(p)!)}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -593,11 +624,18 @@ export function TopNav() {
                                     <Eye className="h-4 w-4" />
                                   </a>
                                   <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(p)}`}
+                                    href={fileHref(firstFileLink(p)!, true)}
                                     download
                                     className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                     title="Download file"
-                                    onClick={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const target = downloadTarget(firstFileLink(p)!, "category", p.id, p.title);
+                                      startAuthenticatedDownload(target).then((success) => {
+                                        if (!success) setPendingDownload(target);
+                                      });
+                                    }}
                                   >
                                     <Download className="h-4 w-4" />
                                   </a>
@@ -640,7 +678,7 @@ export function TopNav() {
                                     {firstFileLink(c) && (
                                       <>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
+                                          href={fileHref(firstFileLink(c)!)}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -650,11 +688,18 @@ export function TopNav() {
                                           <Eye className="h-4 w-4" />
                                         </a>
                                         <a
-                                          href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${firstFileLink(c)}`}
+                                          href={fileHref(firstFileLink(c)!, true)}
                                           download
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                           title="Download file"
-                                          onClick={(e) => e.stopPropagation()}
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             const target = downloadTarget(firstFileLink(c)!, "category", c.id, c.title);
+                                             startAuthenticatedDownload(target).then((success) => {
+                                               if (!success) setPendingDownload(target);
+                                             });
+                                           }}
                                         >
                                           <Download className="h-4 w-4" />
                                         </a>
@@ -736,7 +781,7 @@ export function TopNav() {
                             {first && (
                               <>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                  href={fileHref(first)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="shrink-0 rounded p-1 text-white/70 hover:text-white"
@@ -745,10 +790,18 @@ export function TopNav() {
                                   <Eye className="h-4 w-4" />
                                 </a>
                                 <a
-                                  href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${first}`}
+                                  href={fileHref(first, true)}
                                   download
                                   className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                   title="Download file"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const target = downloadTarget(first, "template", t.id, t.title);
+                                      startAuthenticatedDownload(target).then((success) => {
+                                        if (!success) setPendingDownload(target);
+                                      });
+                                    }}
                                 >
                                   <Download className="h-4 w-4" />
                                 </a>
@@ -793,14 +846,14 @@ export function TopNav() {
               </div>
 
               <Link
-                href="/knowledge"
+                href="/?section=knowledge"
                 className={`flex items-center gap-3 px-4 py-3.5 text-sm font-semibold ${
-                  path?.startsWith("/knowledge") ? "text-[#ffcc00]" : "text-white/90"
+                  isWorkspaceKnowledge ? "text-[#ffcc00]" : "text-white/90"
                 }`}
               >
                 <Book className="h-4 w-4" />
                 Knowledge Articles
-                {path?.startsWith("/knowledge") && (
+                {isWorkspaceKnowledge && (
                   <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ffcc00]" />
                 )}
               </Link>

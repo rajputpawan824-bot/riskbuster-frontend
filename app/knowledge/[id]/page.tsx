@@ -76,6 +76,11 @@ export default function KnowledgeArticleDetailPage() {
       ? [article.fileLink]
       : [];
 
+  const fileHref = (url: string, download = false) => {
+    const base = `${API_BASE}${url}`;
+    return download ? `${base}${base.includes("?") ? "&" : "?"}download=1` : base;
+  };
+
   return (
     <MainShell showHeader={true} showNav={false}>
       <FlashMessage
@@ -154,8 +159,8 @@ export default function KnowledgeArticleDetailPage() {
 
                       return (
                         <div key={url} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2 text-sm">
-                          <a href={`${API_BASE}${url}`} target="_blank" rel="noreferrer" className="flex-1 truncate text-left text-sm text-gray-800 underline">{fileName}</a>
-                          <a href={`${API_BASE}${url}`} download className="inline-flex items-center gap-2 rounded bg-[#001f3f] px-2 py-1 text-xs font-semibold text-white hover:bg-[#002b52]">
+                          <a href={fileHref(url)} target="_blank" rel="noreferrer" className="flex-1 truncate text-left text-sm text-gray-800 underline">{fileName}</a>
+                          <a href={fileHref(url, true)} download className="inline-flex items-center gap-2 rounded bg-[#001f3f] px-2 py-1 text-xs font-semibold text-white hover:bg-[#002b52]">
                             <Download className="h-3 w-3" />
                             Download
                           </a>

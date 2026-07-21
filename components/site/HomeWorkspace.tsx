@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Book,
@@ -31,10 +31,11 @@ import { ContactUsForm } from "@/components/contact/ContactUsForm";
 import { EditCategoryForm } from "@/components/categories/EditCategoryForm";
 import { EditTemplateForm } from "@/components/templates/EditTemplateForm";
 import { useAuth } from "@/context/AuthContext";
+import { startAuthenticatedDownload } from "@/lib/download";
 import { apiDelete, apiGet } from "@/lib/api";
 import type { Category, KnowledgeArticle, Template } from "@/types/models";
 
-type SectionId = "introduction" | "categories" | "templates" | "knowledge" | "contact";
+type SectionId = "introduction" | "categories" | "templates" | "knowledge" | "contact" | "downloads";
 type CatModalMode = { type: "edit"; category: Category } | { type: "add" } | null;
 type TplModalMode = { type: "edit"; template: Template } | { type: "add" } | null;
 
@@ -49,24 +50,54 @@ const sections: { id: SectionId; label: string; icon: typeof User }[] = [
 ];
 
 const introHighlights = [
-  "Knowledge-sharing first, not commercial noise",
-  "Practical security guidance rooted in field experience",
-  "A clear path to categories, templates, articles, and support",
+  "Knowledge should be shared, not restricted",
+  "Prevention is always better than reaction",
+  "Awareness is the first step toward safety",
 ];
 
-const introTopics = [
+const careerHighlights = [
+  "United Nations Department of Safety and Security (UNDSS), India",
+  "Large-scale international infrastructure projects in Bangladesh and Afghanistan",
+  "Leading organizations including Nokia India and global joint ventures",
+];
+
+const platformTopics = [
   {
-    title: "Security Threat and Risk Management",
-    description: "Identify threats early, assess exposure, and build stronger mitigation plans.",
+    title: "Security Risk Management",
+    description:
+      "Understanding threats, vulnerabilities, and risk mitigation strategies across industries.",
   },
   {
-    title: "Intelligence and Awareness",
-    description: "Turn real-world observations into situational awareness and better decisions.",
+    title: "Intelligence & Threat Analysis",
+    description:
+      "Foundations of intelligence gathering, analysis, and situational awareness.",
   },
   {
-    title: "Preparedness and Continuity",
-    description: "Use proven methods for response, resilience, and operational continuity.",
+    title: "Crisis & Disaster Management",
+    description:
+      "Practical approaches to emergency response, disaster preparedness, and business continuity.",
   },
+  {
+    title: "Security Systems & Audits",
+    description:
+      "Insights into physical and electronic security systems, audits, and best practices.",
+  },
+  {
+    title: "Field-Based Learning",
+    description: "Lessons drawn from real-world experiences in high-risk and conflict environments.",
+  },
+  {
+    title: "Training & Awareness",
+    description:
+      "Guidance for building security awareness, preparedness, and resilience at individual and organizational levels.",
+  },
+];
+
+const philosophy = [
+  "Knowledge should be shared, not restricted",
+  "Prevention is always better than reaction",
+  "Awareness is the first step toward safety",
+  "Real-world experience is the most valuable teacher",
 ];
 
 const fmtDate = (iso: string) => {
@@ -85,14 +116,32 @@ const isSectionId = (value: string | null): value is SectionId =>
   value === "categories" ||
   value === "templates" ||
   value === "knowledge" ||
-  value === "contact";
+  value === "contact" ||
+  value === "downloads";
 
 export function HomeWorkspace() {
-  const { isEditable } = useAuth();
+  const { isEditable, setPendingDownload } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [active, setActive] = useState<SectionId>("introduction");
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const visibleSections = useMemo(() => {
+    const list = [
+      { id: "introduction" as SectionId, label: "Introduction", icon: User },
+      { id: "categories" as SectionId, label: "Security Risk Categories", icon: Shield },
+      { id: "templates" as SectionId, label: "Templates", icon: FileText },
+      { id: "knowledge" as SectionId, label: "Knowledge Articles", icon: Book },
+      { id: "contact" as SectionId, label: "Contact Us", icon: Mail },
+    ];
+    if (isEditable) {
+      list.push({ id: "downloads" as SectionId, label: "Downloads List", icon: Download });
+    }
+    return list;
+  }, [isEditable]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
   const [flash, setFlash] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -101,6 +150,7 @@ export function HomeWorkspace() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [loadingTpls, setLoadingTpls] = useState(true);
   const [loadingArticles, setLoadingArticles] = useState(true);
+  const [searchCategories, setSearchCategories] = useState("");
   const [searchArticles, setSearchArticles] = useState("");
   const [catModal, setCatModal] = useState<CatModalMode>(null);
   const [tplModal, setTplModal] = useState<TplModalMode>(null);
@@ -130,39 +180,62 @@ export function HomeWorkspace() {
     return { parents, childrenByParent };
   }, [categories]);
 
-  const loadCats = () => {
+  const loadCats = useCallback((query = "") => {
     setLoadingCats(true);
-    apiGet<Category[]>("/api/categories")
+    const q = query.trim();
+    const url = q ? `/api/categories?search=${encodeURIComponent(q)}` : "/api/categories";
+    apiGet<Category[]>(url)
       .then(setCategories)
       .catch(() => setCategories([]))
       .finally(() => setLoadingCats(false));
-  };
+  }, []);
 
-  const loadTpls = () => {
+  const loadTpls = useCallback(() => {
     setLoadingTpls(true);
     apiGet<Template[]>("/api/templates")
       .then(setTemplates)
       .catch(() => setTemplates([]))
       .finally(() => setLoadingTpls(false));
-  };
+  }, []);
 
-  const loadArticles = () => {
+  const loadArticles = useCallback((query = "") => {
     setLoadingArticles(true);
-    apiGet<KnowledgeArticle[]>("/api/knowledge-articles")
+    const q = query.trim();
+    const url = q ? `/api/knowledge-articles?search=${encodeURIComponent(q)}` : "/api/knowledge-articles";
+    apiGet<KnowledgeArticle[]>(url)
       .then(setArticles)
       .catch(() => setArticles([]))
       .finally(() => setLoadingArticles(false));
-  };
+  }, []);
 
   useEffect(() => {
-    loadCats();
     loadTpls();
-    loadArticles();
-  }, []);
+  }, [loadTpls]);
+
+  useEffect(() => {
+    if (active !== "categories") return;
+    const timer = setTimeout(() => {
+      loadCats(searchCategories);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [active, loadCats, searchCategories]);
+
+  useEffect(() => {
+    if (active !== "knowledge") return;
+    const timer = setTimeout(() => {
+      loadArticles(searchArticles);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [active, loadArticles, searchArticles]);
 
   const firstFileLink = (item: { fileLink?: string; fileLinks?: string[] }) => {
     const links = item.fileLinks && item.fileLinks.length > 0 ? item.fileLinks : item.fileLink?.trim() ? [item.fileLink] : [];
     return links[0] || null;
+  };
+
+  const fileHref = (fileLink: string, download = false) => {
+    const url = `${API_BASE}${fileLink}`;
+    return download ? `${url}${url.includes("?") ? "&" : "?"}download=1` : url;
   };
 
   const onDeleteCategory = (c: Category) => {
@@ -184,23 +257,27 @@ export function HomeWorkspace() {
     setConfirm({ kind: "template", id: t.id, title: t.title });
   };
 
-  const filteredArticles = useMemo(() => {
-    const q = searchArticles.trim().toLowerCase();
-    if (!q) return articles;
-    return articles.filter(
-      (a) =>
-        a.title.toLowerCase().includes(q) ||
-        a.country?.toLowerCase().includes(q) ||
-        snippet(a.description).toLowerCase().includes(q)
-    );
-  }, [articles, searchArticles]);
-
-  const activeSectionLabel = sections.find((section) => section.id === active)?.label ?? "Workspace";
+  const activeSectionLabel = visibleSections.find((section) => section.id === active)?.label ?? "Workspace";
 
   useEffect(() => {
     const section = searchParams.get("section");
     setActive(isSectionId(section) ? section : "introduction");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (active === "downloads" && isEditable) {
+      setLoadingUsers(true);
+      apiGet<any[]>("/api/auth/users")
+        .then((data) => {
+          setUsers(data);
+          if (data.length > 0 && !selectedUserId) {
+            setSelectedUserId(data[0].id);
+          }
+        })
+        .catch((err) => console.error("Failed to load users", err))
+        .finally(() => setLoadingUsers(false));
+    }
+  }, [active, isEditable]);
 
   const setSection = (section: SectionId) => {
     setActive(section);
@@ -275,13 +352,13 @@ export function HomeWorkspace() {
 
             <div className={`mt-3 lg:mt-4 ${mobileSidebarOpen ? "block" : "hidden lg:block"}`}>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:hidden">
-                {sections.map((section) => (
+                {visibleSections.map((section) => (
                   <SidebarButton key={section.id} {...section} />
                 ))}
               </div>
 
               <div className="mt-5 hidden space-y-2 lg:block">
-              {sections.map((section) => (
+              {visibleSections.map((section) => (
                 <button
                   key={section.id}
                   type="button"
@@ -328,7 +405,7 @@ export function HomeWorkspace() {
                           Introduction
                         </p>
                         <h2 className="mt-2 text-xl font-bold sm:text-3xl">
-                          Security insight, practical guidance, and a cleaner path to the content.
+                          Welcome to Riskbusters.co.in
                         </h2>
                       </div>
                       <div className="relative h-16 w-12 self-start overflow-hidden rounded-lg border border-white/15 bg-[#0b2c52] shadow-sm sm:h-24 sm:w-20">
@@ -342,25 +419,139 @@ export function HomeWorkspace() {
                         />
                       </div>
                     </div>
-                    <p className="mt-3 max-w-3xl text-sm leading-6 text-white/82 sm:text-base">
-                      RiskBusters is built to share field-tested knowledge in a simple, organized
-                      interface. Use the sidebar to move between categories, templates, knowledge
-                      articles, and contact support without losing context.
+                    <p className="mt-3 max-w-4xl text-sm leading-6 text-white/82 sm:text-base">
+                      <a
+                        href="https://riskbusters.co.in"
+                        className="font-bold text-white underline-offset-2 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Riskbusters.co.in
+                      </a>{" "}
+                      is a knowledge-driven platform dedicated to sharing insights, best practices,
+                      and real-world experience across the full spectrum of{" "}
+                      <strong className="font-semibold text-white">
+                        Security Threat and Risk Management
+                      </strong>
+                      .
+                    </p>
+                    <p className="mt-3 max-w-4xl text-sm leading-6 text-white/82 sm:text-base">
+                      This initiative has been created with a clear purpose: to{" "}
+                      <strong className="font-semibold text-white">
+                        impart practical, experience-based knowledge freely
+                      </strong>{" "}
+                      to professionals, students, organizations, and anyone interested in
+                      understanding and managing security risks in today&apos;s complex world.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {introTopics.map((topic) => (
-                    <article
-                      key={topic.title}
-                      className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
-                    >
-                      <h3 className="text-sm font-bold text-[#001f3f] sm:text-base">{topic.title}</h3>
-                      <p className="mt-2 text-xs leading-6 text-gray-600 sm:text-sm">{topic.description}</p>
-                    </article>
-                  ))}
-                </div>
+                <section
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+                  aria-labelledby="founder-heading"
+                >
+                  <h3
+                    id="founder-heading"
+                    className="text-lg font-bold text-[#001f3f] sm:text-xl"
+                  >
+                    Our Founder
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 sm:text-base">
+                    Riskbusters is founded by{" "}
+                    <strong className="font-semibold text-[#001f3f]">Sureinder Kumar</strong>, a
+                    former{" "}
+                    <strong className="font-semibold text-[#001f3f]">
+                      United Nations Security Professional
+                    </strong>{" "}
+                    with over{" "}
+                    <strong className="font-semibold text-[#001f3f]">
+                      40 years of distinguished experience
+                    </strong>{" "}
+                    in security risk management, intelligence analysis, and administration across
+                    national and international environments.
+                  </p>
+                  <p className="mt-3 text-sm font-medium text-gray-800 sm:text-base">
+                    His career spans assignments with:
+                  </p>
+                  <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-700 marker:text-[#001f3f] sm:text-base">
+                    {careerHighlights.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 sm:text-base">
+                    During his tenure with the United Nations, he maintained a{" "}
+                    <strong className="font-semibold text-[#001f3f]">
+                      zero-security-incident record over five consecutive years
+                    </strong>
+                    , reflecting a strong foundation in proactive risk management and operational
+                    excellence.
+                  </p>
+                </section>
+
+                <section
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+                  aria-labelledby="platform-heading"
+                >
+                  <h3
+                    id="platform-heading"
+                    className="text-lg font-bold text-[#001f3f] sm:text-xl"
+                  >
+                    What This Platform Offers
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 sm:text-base">
+                    Riskbusters.co.in is{" "}
+                    <strong className="font-semibold text-[#001f3f]">
+                      not a commercial venture
+                    </strong>
+                    . It is a{" "}
+                    <strong className="font-semibold text-[#001f3f]">
+                      knowledge-sharing initiative
+                    </strong>{" "}
+                    designed to make high-quality security insights accessible to all.
+                  </p>
+                  <p className="mt-3 text-sm font-medium text-gray-800 sm:text-base">
+                    The platform will cover:
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {platformTopics.map(({ title, description }) => (
+                      <div
+                        key={title}
+                        className="rounded-lg border border-gray-100 bg-[#f8fafc] p-4"
+                      >
+                        <h4 className="text-sm font-bold text-[#001f3f] sm:text-base">{title}</h4>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-600 sm:text-sm">
+                          {description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section
+                  className="rounded-2xl border border-[#001f3f]/15 bg-[#001f3f] p-4 text-white shadow-sm sm:p-5"
+                  aria-labelledby="philosophy-heading"
+                >
+                  <h3
+                    id="philosophy-heading"
+                    className="text-lg font-bold sm:text-xl"
+                  >
+                    Our Philosophy
+                  </h3>
+                  <p className="mt-3 text-sm text-white/90 sm:text-base">We believe that:</p>
+                  <ul className="mt-4 space-y-3 text-sm leading-relaxed sm:text-base">
+                    {philosophy.map((line) => (
+                      <li key={line} className="flex gap-3">
+                        <span
+                          className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ffcc00]"
+                          aria-hidden
+                        />
+                        <span className="text-white/95">
+                          <strong className="font-semibold text-white">{line}</strong>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
 
                 <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                   <article className="rounded-2xl border border-gray-200 bg-[#f8fafc] p-4 sm:p-5">
@@ -388,13 +579,13 @@ export function HomeWorkspace() {
                   </article>
 
                   <article className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-                    <h3 className="text-base font-bold text-[#001f3f] sm:text-lg">Need the old pages?</h3>
+                    <h3 className="text-base font-bold text-[#001f3f] sm:text-lg">Prefer the full pages?</h3>
                     <p className="mt-2 text-sm leading-6 text-gray-600">
-                      The dedicated pages still exist for deeper reading and editing flows.
+                      The dedicated pages are still available for deeper reading and editing.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Link
-                        href="/knowledge"
+                        href="/?section=knowledge"
                         className="inline-flex items-center gap-2 rounded-full bg-[#001f3f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#002b52]"
                       >
                         <Book className="h-4 w-4" />
@@ -439,13 +630,35 @@ export function HomeWorkspace() {
                   )}
                 </div>
 
+                <div className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-3 shadow-sm focus-within:ring-1 focus-within:ring-[#001f3f]">
+                  <Search className="h-4 w-4 shrink-0 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={searchCategories}
+                    onChange={(e) => setSearchCategories(e.target.value)}
+                    className="w-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+                  />
+                  {searchCategories && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchCategories("")}
+                      title="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" />
+                    </button>
+                  )}
+                </div>
+
                 {loadingCats ? (
                   <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
                     Loading categories...
                   </div>
                 ) : catTree.parents.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
-                    No categories available yet.
+                    {searchCategories.trim()
+                      ? "No categories match your search."
+                      : "No categories available yet."}
                   </div>
                 ) : (
                   <div className="grid gap-4 xl:grid-cols-2">
@@ -475,7 +688,7 @@ export function HomeWorkspace() {
                             {link && (
                               <>
                                 <a
-                                  href={`${API_BASE}${link}`}
+                                  href={fileHref(link)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
@@ -484,9 +697,22 @@ export function HomeWorkspace() {
                                   Preview
                                 </a>
                                 <a
-                                  href={`${API_BASE}${link}`}
+                                  href={fileHref(link, true)}
                                   download
                                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const target = {
+                                      href: fileHref(link, true),
+                                      documentType: "category",
+                                      documentId: parent.id,
+                                      title: parent.title,
+                                      fileLink: link,
+                                    };
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
                                 >
                                   <Download className="h-4 w-4" />
                                   Download
@@ -537,7 +763,7 @@ export function HomeWorkspace() {
                                         {childLink && (
                                           <>
                                             <a
-                                              href={`${API_BASE}${childLink}`}
+                                              href={fileHref(childLink)}
                                               target="_blank"
                                               rel="noreferrer"
                                               className="rounded p-1 text-gray-500 hover:bg-white hover:text-gray-900"
@@ -545,9 +771,22 @@ export function HomeWorkspace() {
                                               <Eye className="h-4 w-4" />
                                             </a>
                                             <a
-                                              href={`${API_BASE}${childLink}`}
+                                              href={fileHref(childLink, true)}
                                               download
                                               className="rounded p-1 text-gray-500 hover:bg-white hover:text-gray-900"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                const target = {
+                                                  href: fileHref(childLink, true),
+                                                  documentType: "category",
+                                                  documentId: child.id,
+                                                  title: child.title,
+                                                  fileLink: childLink,
+                                                };
+                                                startAuthenticatedDownload(target).then((success) => {
+                                                  if (!success) setPendingDownload(target);
+                                                });
+                                              }}
                                             >
                                               <Download className="h-4 w-4" />
                                             </a>
@@ -654,9 +893,22 @@ export function HomeWorkspace() {
                                   Preview
                                 </a>
                                 <a
-                                  href={`${API_BASE}${link}`}
+                                  href={`${API_BASE}${link}${link.includes("?") ? "&" : "?"}download=1`}
                                   download
                                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const target = {
+                                      href: `${API_BASE}${link!}${link!.includes("?") ? "&" : "?"}download=1`,
+                                      documentType: "template",
+                                      documentId: tpl.id,
+                                      title: tpl.title,
+                                      fileLink: link!,
+                                    };
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
                                 >
                                   <Download className="h-4 w-4" />
                                   Download
@@ -722,7 +974,7 @@ export function HomeWorkspace() {
                   <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
                     Loading knowledge articles...
                   </div>
-                ) : filteredArticles.length === 0 ? (
+                ) : articles.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
                     {searchArticles
                       ? "No articles match your search."
@@ -730,7 +982,7 @@ export function HomeWorkspace() {
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredArticles.map((article) => (
+                    {articles.map((article) => (
                       <article
                         key={article.id}
                         className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
@@ -791,6 +1043,102 @@ export function HomeWorkspace() {
                     onError={(message) => setFlash(`Failed: ${message}`)}
                   />
                 </div>
+              </div>
+            )}
+
+            {active === "downloads" && isEditable && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                    Downloads History
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-[#001f3f]">Registered User Downloads</h2>
+                  <p className="mt-2 text-sm text-gray-600">
+                    View download activity and document logs across registered users.
+                  </p>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
+                    Loading registered users...
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+                    No registered users found.
+                  </div>
+                ) : (
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Left/Middle: User List */}
+                    <div className="lg:col-span-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm h-[600px] overflow-y-auto space-y-2">
+                      <p className="text-xs font-bold text-[#001f3f] border-b pb-2">Users ({users.length})</p>
+                      {users.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => setSelectedUserId(u.id)}
+                          className={`w-full text-left p-3 rounded-xl transition-all ${
+                            selectedUserId === u.id
+                              ? "bg-[#001f3f] text-white shadow-sm"
+                              : "hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          <p className="font-semibold text-sm truncate">{u.name}</p>
+                          <p className={`text-xs mt-0.5 truncate ${selectedUserId === u.id ? "text-white/70" : "text-gray-400"}`}>
+                            {u.country || "Unknown Country"}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Right: Selected User Detail & Download Log */}
+                    <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm min-h-[400px]">
+                      {(() => {
+                        const selectedUser = users.find((u) => u.id === selectedUserId);
+                        if (!selectedUser) {
+                          return (
+                            <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                              Select a user to view details and history.
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-6">
+                            <div>
+                              <h3 className="text-xl font-bold text-[#001f3f]">{selectedUser.name}</h3>
+                              <p className="text-xs text-gray-500 mt-1">Email: {selectedUser.email}</p>
+                              <p className="text-xs text-gray-500">Country: {selectedUser.country || "N/A"}</p>
+                              <p className="text-xs text-gray-500">Joined: {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                            </div>
+
+                            <div className="border-t pt-4">
+                              <h4 className="text-sm font-bold text-[#001f3f] mb-3">Download History ({selectedUser.download_document?.length || 0})</h4>
+                              {!selectedUser.download_document || selectedUser.download_document.length === 0 ? (
+                                <p className="text-xs text-gray-500 italic">No files downloaded yet.</p>
+                              ) : (
+                                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
+                                  {selectedUser.download_document.map((doc: any, index: number) => (
+                                    <div key={index} className="p-3 rounded-lg border border-gray-100 bg-[#f8fafc] text-xs">
+                                      <div className="flex justify-between items-start gap-2">
+                                        <p className="font-semibold text-[#001f3f] truncate flex-1">{doc.title || "Untitled Document"}</p>
+                                        <span className="text-[10px] uppercase font-bold text-[#2563eb] bg-blue-50 px-1.5 py-0.5 rounded">
+                                          {doc.documentType}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-400 mt-1 font-mono truncate">{doc.fileLink}</p>
+                                      <p className="text-[10px] text-gray-400 mt-1">
+                                        Downloaded: {new Date(doc.downloadedAt).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>

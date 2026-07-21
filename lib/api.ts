@@ -12,7 +12,9 @@ export function authHeaders(): HeadersInit {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${getBase()}${path}`);
+  const res = await fetch(`${getBase()}${path}`, {
+    headers: { ...authHeaders() },
+  });
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<T>;
 }

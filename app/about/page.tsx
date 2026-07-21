@@ -4,7 +4,7 @@ import Link from "next/link";
 import { MainShell } from "@/components/site/MainShell";
 
 export const metadata: Metadata = {
-  title: "Introduction — RiskBusters",
+  title: "About Us — RiskBusters",
   description:
     "Riskbusters.co.in: a knowledge-driven platform for Security Threat and Risk Management — insights, founder background, and what the platform offers.",
 };
@@ -75,7 +75,7 @@ export default function AboutPage() {
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-bold tracking-tight text-[#001f3f] sm:text-3xl md:text-4xl">
-                Introduction
+                About Us
               </h1>
               <p className="mt-4 text-sm leading-relaxed text-gray-700 sm:text-base">
                 Welcome to{" "}
@@ -96,7 +96,6 @@ export default function AboutPage() {
               </p>
               <p className="mt-4 text-sm leading-relaxed text-gray-700 sm:text-base">
                 This initiative has been created with a clear purpose:
-                <br />
                 to{" "}
                 <strong className="font-semibold text-[#001f3f]">
                   impart practical, experience-based knowledge freely
@@ -122,7 +121,7 @@ export default function AboutPage() {
             Riskbusters is founded by <strong className="font-semibold text-[#001f3f]">Sureinder Kumar</strong>, a
             former <strong className="font-semibold text-[#001f3f]">United Nations Security Professional</strong>{" "}
             with over{" "}
-            <strong className="font-semibold text-[#001f3f]">39 years of distinguished experience</strong> in
+            <strong className="font-semibold text-[#001f3f]">40 years of distinguished experience</strong> in
             security risk management, intelligence analysis, and administration across national
             and international environments.
           </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Book,
   Calendar,
@@ -50,10 +50,12 @@ export default function KnowledgeArticlesPage() {
   const [edit, setEdit] = useState<KnowledgeArticle | null>(null);
   const [confirm, setConfirm] = useState<KnowledgeArticle | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback((query = "") => {
     setLoading(true);
     setErr(null);
-    apiGet<KnowledgeArticle[]>("/api/knowledge-articles")
+    const q = query.trim();
+    const url = q ? `/api/knowledge-articles?search=${encodeURIComponent(q)}` : "/api/knowledge-articles";
+    apiGet<KnowledgeArticle[]>(url)
       .then(setArticles)
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
@@ -61,19 +63,11 @@ export default function KnowledgeArticlesPage() {
 
   useEffect(() => {
     if (!ready) return;
-    load();
-  }, [load, ready]);
-
-  const list = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return articles;
-    return articles.filter(
-      (a) =>
-        a.title.toLowerCase().includes(q) ||
-        a.country?.toLowerCase().includes(q) ||
-        snippet(a.description).toLowerCase().includes(q)
-    );
-  }, [articles, search]);
+    const timer = setTimeout(() => {
+      load(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [load, ready, search]);
 
   return (
     <MainShell>
@@ -140,7 +134,7 @@ export default function KnowledgeArticlesPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600 shadow-sm">
             Loading…
           </div>
-        ) : list.length === 0 ? (
+        ) : articles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500 shadow-sm">
             <Book className="mx-auto h-8 w-8 text-gray-300" />
             <p className="mt-2 text-sm">
@@ -159,7 +153,7 @@ export default function KnowledgeArticlesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {list.map((a) => {
+            {articles.map((a) => {
               const cover =
                 a.imageLinks && a.imageLinks.length > 0
                   ? a.imageLinks[0]

@@ -1,6 +1,7 @@
 import { PageHeaderBlock } from "./PageHeaderBlock";
 import { TopNav } from "./TopNav";
 import { SiteFooter } from "./SiteFooter";
+import { Suspense } from "react";
 
 type Props = {
   children: React.ReactNode;
@@ -18,7 +19,11 @@ export function MainShell({
   return (
     <div className="min-h-full flex flex-col bg-[#eceff3]">
       {showHeader && <PageHeaderBlock />}
-      {showNav && <TopNav />}
+      {showNav && (
+        <Suspense fallback={null}>
+          <TopNav />
+        </Suspense>
+      )}
       <div className="w-full flex-1 px-4 py-3">{children}</div>
       {showFooter && <SiteFooter />}
     </div>
