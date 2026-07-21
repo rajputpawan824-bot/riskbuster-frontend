@@ -120,7 +120,7 @@ const isSectionId = (value: string | null): value is SectionId =>
   value === "downloads";
 
 export function HomeWorkspace() {
-  const { isEditable, setPendingDownload } = useAuth();
+  const { isEditable, isAuthenticated, email, logout, setPendingDownload } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -391,6 +391,40 @@ export function HomeWorkspace() {
                 ))}
               </ul>
               </div>
+
+              {/* Profile Card & Logout */}
+              {isAuthenticated ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-white/15 ring-1 ring-white/10 flex items-center justify-center text-white shrink-0">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Logged In</p>
+                      <p className="text-xs font-semibold text-white truncate" title={email || ""}>
+                        {email}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="w-full text-center py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition duration-200"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-[#f8fafc]/5 p-3 flex flex-col gap-2">
+                  <p className="text-[11px] text-white/70 text-center font-medium">Unlock templates & risk downloads</p>
+                  <Link
+                    href="/login"
+                    className="w-full text-center py-2 px-3 rounded-xl bg-white text-[#001f3f] hover:bg-white/90 font-semibold text-xs transition duration-200"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              )}
             </div>
           </aside>
 
