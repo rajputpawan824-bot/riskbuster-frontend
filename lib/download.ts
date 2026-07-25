@@ -38,7 +38,31 @@ export function clearPendingDownload() {
 export async function startAuthenticatedDownload(target: DownloadTarget) {
   if (!storageAvailable()) return false;
 
+  const role = localStorage.getItem("rb_role");
   const token = localStorage.getItem(TOKEN_KEY);
+
+  if (role === "admin") {
+    try {
+      const fileRes = await fetch(target.href);
+      if (!fileRes.ok) throw new Error("File fetch failed");
+      const blob = await fileRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const filename = target.href.substring(target.href.lastIndexOf("/") + 1).split("?")[0] || "document";
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      return true;
+    } catch (err) {
+      console.error("Failed to download file via Blob, falling back to location.href", err);
+      window.location.href = target.href;
+      return true;
+    }
+  }
+
   if (!token) {
     savePendingDownload(target);
     return false;

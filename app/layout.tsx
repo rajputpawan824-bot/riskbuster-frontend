@@ -14,8 +14,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RiskBusters — Security Threat and Risk Management",
-  description: "Ongoing conflicts and security risk overview",
+  metadataBase: new URL("https://www.riskbusters.co.in"),
+  title: {
+    default: "RiskBusters — Security Threat & Risk Management",
+    template: "%s | RiskBusters",
+  },
+  description: "Comprehensive security risk management, threat intelligence, and risk mitigation templates.",
+  keywords: ["Security Risk Management", "Risk Assessment", "Threat Intelligence", "RiskBusters"],
+  authors: [{ name: "RiskBusters" }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    title: "RiskBusters — Security Threat & Risk Management",
+    description: "Comprehensive security risk management, threat intelligence, and risk mitigation templates.",
+    url: "https://www.riskbusters.co.in",
+    siteName: "RiskBusters",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RiskBusters — Security Threat & Risk Management",
+    description: "Comprehensive security risk management, threat intelligence, and risk mitigation templates.",
+  },
+  alternates: {
+    canonical: "https://www.riskbusters.co.in",
+  },
 };
 
 export default function RootLayout({

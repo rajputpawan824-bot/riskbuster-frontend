@@ -2,8 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FlashMessage } from "@/components/ui/FlashMessage";
 import { useAuth } from "@/context/AuthContext";
 import { COUNTRY_FORM_OPTIONS } from "@/lib/countries";
+import { cleanErrorMessage } from "@/lib/api";
 import { BrandLogo } from "./BrandLogo";
 import { Mail, Lock, User, Globe, ArrowRight } from "lucide-react";
 
@@ -22,12 +24,14 @@ export function DownloadRegisterModal({ open, onClose, onSuccess }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("");
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
+    setToast(null);
     setLoading(true);
     try {
       if (mode === "register") {
@@ -37,7 +41,9 @@ export function DownloadRegisterModal({ open, onClose, onSuccess }: Props) {
       }
       onSuccess();
     } catch (ex: unknown) {
-      setErr(ex instanceof Error ? ex.message : `${mode === "register" ? "Registration" : "Login"} failed`);
+      const msg = cleanErrorMessage(ex, `${mode === "register" ? "Registration" : "Login"} failed`);
+      setErr(msg);
+      setToast({ message: msg, tone: "error" });
     } finally {
       setLoading(false);
     }
@@ -46,6 +52,7 @@ export function DownloadRegisterModal({ open, onClose, onSuccess }: Props) {
   const toggleMode = () => {
     setMode((prev) => (prev === "register" ? "login" : "register"));
     setErr(null);
+    setToast(null);
     setName("");
     setEmail("");
     setPassword("");
@@ -209,6 +216,11 @@ export function DownloadRegisterModal({ open, onClose, onSuccess }: Props) {
           </p>
         )}
       </div>
+      <FlashMessage
+        message={toast?.message ?? null}
+        tone={toast?.tone}
+        onClose={() => setToast(null)}
+      />
     </Modal>
   );
 }

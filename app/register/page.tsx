@@ -8,6 +8,8 @@ import { MainShell } from "@/components/site/MainShell";
 import { useAuth } from "@/context/AuthContext";
 import { clearPendingDownload, replayPendingDownload, readPendingDownload } from "@/lib/download";
 import { COUNTRY_FORM_OPTIONS } from "@/lib/countries";
+import { cleanErrorMessage } from "@/lib/api";
+import { FlashMessage } from "@/components/ui/FlashMessage";
 
 export default function RegisterPage() {
   const { register, isAuthenticated, ready } = useAuth();
@@ -16,6 +18,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("");
 
@@ -33,6 +36,7 @@ export default function RegisterPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
+    setToast(null);
     setLoading(true);
     try {
       await register(name, email, password, selectedCountry);
@@ -43,7 +47,9 @@ export default function RegisterPage() {
         router.refresh();
       }
     } catch (ex: unknown) {
-      setErr(ex instanceof Error ? ex.message : "Registration failed");
+      const msg = cleanErrorMessage(ex, "Registration failed");
+      setErr(msg);
+      setToast({ message: msg, tone: "error" });
     } finally {
       setLoading(false);
     }
@@ -162,6 +168,11 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+      <FlashMessage
+        message={toast?.message ?? null}
+        tone={toast?.tone}
+        onClose={() => setToast(null)}
+      />
     </MainShell>
   );
 }

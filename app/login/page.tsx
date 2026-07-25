@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import { MainShell } from "@/components/site/MainShell";
 import { BrandLogo } from "@/components/site/BrandLogo";
 import Link from "next/link";
+import { cleanErrorMessage } from "@/lib/api";
+import { FlashMessage } from "@/components/ui/FlashMessage";
 
 export default function LoginPage() {
   const { login, isEditable, ready } = useAuth();
@@ -13,18 +15,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
+    setToast(null);
     setLoading(true);
     try {
       await login(email, password);
       router.push("/");
       router.refresh();
     } catch (ex: unknown) {
-      setErr(ex instanceof Error ? ex.message : "Login failed");
+      const msg = cleanErrorMessage(ex, "Login failed");
+      setErr(msg);
+      setToast({ message: msg, tone: "error" });
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,11 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+      <FlashMessage
+        message={toast?.message ?? null}
+        tone={toast?.tone}
+        onClose={() => setToast(null)}
+      />
     </MainShell>
   );
 }

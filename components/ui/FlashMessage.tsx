@@ -7,7 +7,7 @@ type Props = {
 export function FlashMessage({ message, tone = "success", onClose }: Props) {
   if (!message) return null;
   return (
-    <div className="fixed inset-x-0 bottom-3 z-[60] flex justify-center px-3 sm:bottom-4">
+    <div className="fixed inset-x-0 bottom-3 z-[100] flex justify-center px-3 sm:bottom-4 pointer-events-auto">
       <div
         className={`flex w-full max-w-md items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm shadow-lg ${
           tone === "success"
