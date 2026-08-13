@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       isAuthenticated: Boolean(token),
-      isEditable: Boolean(token),
+      isEditable: Boolean(token) && role === "admin",
       isAdmin: Boolean(token) && role === "admin",
       role,
       email,

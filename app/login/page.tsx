@@ -10,7 +10,7 @@ import { cleanErrorMessage } from "@/lib/api";
 import { FlashMessage } from "@/components/ui/FlashMessage";
 
 export default function LoginPage() {
-  const { login, isEditable, ready } = useAuth();
+  const { login, isAuthenticated, isAdmin, ready } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,11 +44,13 @@ export default function LoginPage() {
     );
   }
 
-  if (isEditable) {
+  if (isAuthenticated) {
     return (
       <MainShell>
         <div className="mx-auto max-w-md py-8 text-center">
-          <p className="text-[#001f3f]">You are already signed in.</p>
+          <p className="text-[#001f3f] font-medium">
+            You are signed in as <span className="font-semibold">{isAdmin ? "Admin" : "User"}</span>.
+          </p>
           <Link href="/" className="mt-3 inline-block text-sm font-semibold text-blue-600 underline">
             Go to dashboard
           </Link>
@@ -64,8 +66,7 @@ export default function LoginPage() {
           <BrandLogo />
           <h1 className="mt-4 text-xl font-bold text-[#001f3f]">Sign in</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Enter the admin email and password to enable edit mode (add / edit / delete
-            conflicts and categories).
+            Sign in with your credentials. Admins can create, edit, and delete content; regular users can preview, read, and download documents.
           </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">

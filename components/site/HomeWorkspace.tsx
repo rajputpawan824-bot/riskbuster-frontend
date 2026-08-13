@@ -652,8 +652,7 @@ export function HomeWorkspace() {
                     </p>
                     <h2 className="mt-1 text-2xl font-bold text-[#001f3f]">Browse the category tree</h2>
                     <p className="mt-2 text-sm text-gray-600">
-                      Parent categories and subcategories are shown here with the same edit,
-                      delete, preview, and download actions used elsewhere in the site.
+                      Parent categories and subcategories are shown here. Preview and download resources directly, with admin management capabilities.
                     </p>
                   </div>
                   {isEditable && (

@@ -42,7 +42,7 @@ type TplModalMode = { type: "edit"; template: Template } | { type: "add" } | nul
 export function TopNav() {
   const path = usePathname();
   const searchParams = useSearchParams();
-  const { isEditable, logout, email, setPendingDownload } = useAuth();
+  const { isAuthenticated, isEditable, isAdmin, logout, email, setPendingDownload } = useAuth();
   const [openCat, setOpenCat] = useState(false);
   const [openTpl, setOpenTpl] = useState(false);
   const [openCatParentId, setOpenCatParentId] = useState<string | null>(null);
@@ -540,12 +540,12 @@ export function TopNav() {
 
           {/* Right side: auth + hamburger */}
           <div className="flex shrink-0 items-center gap-2 lg:py-1">
-            {isEditable && email && (
-              <span className="hidden max-w-[120px] truncate text-xs text-white/80 sm:inline">
-                {email}
+            {isAuthenticated && email && (
+              <span className="hidden max-w-[180px] truncate text-xs text-white/80 sm:inline font-medium">
+                {email} {isAdmin ? "(Admin)" : "(User)"}
               </span>
             )}
-            {isEditable ? (
+            {isAuthenticated ? (
               <button
                 type="button"
                 onClick={logout}
@@ -558,7 +558,7 @@ export function TopNav() {
               <Link
                 href="/login"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-white/90 ring-1 ring-white/20 hover:bg-white/10"
-                title="Log in for edit mode"
+                title="Log in"
               >
                 <UserCircle className="h-5 w-5" />
               </Link>
