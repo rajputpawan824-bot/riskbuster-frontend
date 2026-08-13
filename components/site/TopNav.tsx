@@ -98,13 +98,15 @@ export function TopNav() {
     fileLink: string,
     documentType: string,
     documentId: string,
-    title: string
+    title: string,
+    isPreview = false
   ) => ({
-    href: fileHref(fileLink, true),
+    href: fileHref(fileLink, !isPreview),
     documentType,
     documentId,
     title,
     fileLink,
+    isPreview,
   });
 
   // Only render interactive/stateful UI after mount to avoid SSR mismatch
@@ -311,13 +313,20 @@ export function TopNav() {
                                   {firstFileLink(c) && (
                                     <>
                                       <a
-                                        href={fileHref(firstFileLink(c)!)}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                        title="Preview file"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
+                                         href={fileHref(firstFileLink(c)!)}
+                                         target="_blank"
+                                         rel="noreferrer"
+                                         className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                         title="Preview file"
+                                         onClick={(e) => {
+                                           e.preventDefault();
+                                           e.stopPropagation();
+                                           const target = downloadTarget(firstFileLink(c)!, "category", c.id, c.title, true);
+                                           startAuthenticatedDownload(target).then((success) => {
+                                             if (!success) setPendingDownload(target);
+                                           });
+                                         }}
+                                       >
                                         <Eye className="h-4 w-4" />
                                       </a>
                                 <a
@@ -433,6 +442,14 @@ export function TopNav() {
                                 rel="noreferrer"
                                 className="shrink-0 rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                 title="Preview file"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const target = downloadTarget(first, "template", t.id, t.title, true);
+                                  startAuthenticatedDownload(target).then((success) => {
+                                    if (!success) setPendingDownload(target);
+                                  });
+                                }}
                               >
                                 <Eye className="h-4 w-4" />
                               </a>
@@ -683,7 +700,14 @@ export function TopNav() {
                                           rel="noreferrer"
                                           className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                           title="Preview file"
-                                          onClick={(e) => e.stopPropagation()}
+                                          onClick={(e) => {
+                                           e.preventDefault();
+                                           e.stopPropagation();
+                                           const target = downloadTarget(firstFileLink(c)!, "category", c.id, c.title, true);
+                                           startAuthenticatedDownload(target).then((success) => {
+                                             if (!success) setPendingDownload(target);
+                                           });
+                                         }}
                                         >
                                           <Eye className="h-4 w-4" />
                                         </a>
@@ -786,6 +810,14 @@ export function TopNav() {
                                   rel="noreferrer"
                                   className="shrink-0 rounded p-1 text-white/70 hover:text-white"
                                   title="Preview file"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const target = downloadTarget(first, "template", t.id, t.title, true);
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </a>

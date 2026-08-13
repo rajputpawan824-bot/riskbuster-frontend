@@ -8,6 +8,7 @@ export type DownloadTarget = {
   documentId?: string;
   title?: string;
   fileLink: string;
+  isPreview?: boolean;
 };
 
 function storageAvailable() {
@@ -41,6 +42,31 @@ export async function startAuthenticatedDownload(target: DownloadTarget) {
   const role = localStorage.getItem("rb_role");
   const token = localStorage.getItem(TOKEN_KEY);
 
+  if (!token && role !== "admin") {
+    savePendingDownload(target);
+    return false;
+  }
+
+  if (target.isPreview) {
+    window.open(target.href, "_blank", "noopener,noreferrer");
+    if (token && role !== "admin") {
+      fetch(`${API_BASE}/api/downloads/record`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          documentType: target.documentType,
+          documentId: target.documentId || "",
+          title: target.title || "",
+          fileLink: target.fileLink,
+        }),
+      }).catch((e) => console.error("Failed to record preview download", e));
+    }
+    return true;
+  }
+
   if (role === "admin") {
     try {
       const fileRes = await fetch(target.href);
@@ -63,33 +89,28 @@ export async function startAuthenticatedDownload(target: DownloadTarget) {
     }
   }
 
-  if (!token) {
-    savePendingDownload(target);
-    return false;
-  }
+  try {
+    const res = await fetch(`${API_BASE}/api/downloads/record`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        documentType: target.documentType,
+        documentId: target.documentId || "",
+        title: target.title || "",
+        fileLink: target.fileLink,
+      }),
+    });
 
-  const res = await fetch(`${API_BASE}/api/downloads/record`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      documentType: target.documentType,
-      documentId: target.documentId || "",
-      title: target.title || "",
-      fileLink: target.fileLink,
-    }),
-  });
-
-  if (res.status === 401) {
-    savePendingDownload(target);
-    localStorage.removeItem(TOKEN_KEY);
-    return false;
-  }
-
-  if (!res.ok) {
-    throw new Error(await res.text());
+    if (res.status === 401) {
+      savePendingDownload(target);
+      localStorage.removeItem(TOKEN_KEY);
+      return false;
+    }
+  } catch (e) {
+    console.error("Failed to record download", e);
   }
 
   try {

@@ -18,6 +18,7 @@ import { FlashMessage } from "@/components/ui/FlashMessage";
 import { RichTextView } from "@/components/ui/RichTextView";
 import { KnowledgeArticleFormModalBody } from "@/components/knowledge/KnowledgeArticleFormModalBody";
 import { useAuth } from "@/context/AuthContext";
+import { startAuthenticatedDownload } from "@/lib/download";
 import { apiDelete, apiGet, apiPutForm } from "@/lib/api";
 import type { KnowledgeArticle } from "@/types/models";
 
@@ -37,7 +38,7 @@ export default function KnowledgeArticleDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id;
-  const { isEditable, ready } = useAuth();
+  const { isEditable, ready, setPendingDownload } = useAuth();
 
   const [article, setArticle] = useState<KnowledgeArticle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,8 +160,47 @@ export default function KnowledgeArticleDetailPage() {
 
                       return (
                         <div key={url} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2 text-sm">
-                          <a href={fileHref(url)} target="_blank" rel="noreferrer" className="flex-1 truncate text-left text-sm text-gray-800 underline">{fileName}</a>
-                          <a href={fileHref(url, true)} download className="inline-flex items-center gap-2 rounded bg-[#001f3f] px-2 py-1 text-xs font-semibold text-white hover:bg-[#002b52]">
+                          <a
+                            href={fileHref(url)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 truncate text-left text-sm text-gray-800 underline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const target = {
+                                href: fileHref(url),
+                                documentType: "knowledge_article",
+                                documentId: article?.id || "",
+                                title: article?.title || "",
+                                fileLink: url,
+                                isPreview: true,
+                              };
+                              startAuthenticatedDownload(target).then((success) => {
+                                if (!success) setPendingDownload(target);
+                              });
+                            }}
+                          >
+                            {fileName}
+                          </a>
+                          <a
+                            href={fileHref(url, true)}
+                            download
+                            className="inline-flex items-center gap-2 rounded bg-[#001f3f] px-2 py-1 text-xs font-semibold text-white hover:bg-[#002b52]"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const target = {
+                                href: fileHref(url, true),
+                                documentType: "knowledge_article",
+                                documentId: article?.id || "",
+                                title: article?.title || "",
+                                fileLink: url,
+                                isPreview: false,
+                              };
+                              startAuthenticatedDownload(target).then((success) => {
+                                if (!success) setPendingDownload(target);
+                              });
+                            }}
+                          >
                             <Download className="h-3 w-3" />
                             Download
                           </a>

@@ -30,9 +30,10 @@ import { FlashMessage } from "@/components/ui/FlashMessage";
 import { ContactUsForm } from "@/components/contact/ContactUsForm";
 import { EditCategoryForm } from "@/components/categories/EditCategoryForm";
 import { EditTemplateForm } from "@/components/templates/EditTemplateForm";
+import { KnowledgeArticleFormModalBody } from "@/components/knowledge/KnowledgeArticleFormModalBody";
 import { useAuth } from "@/context/AuthContext";
 import { startAuthenticatedDownload } from "@/lib/download";
-import { apiDelete, apiGet } from "@/lib/api";
+import { apiDelete, apiGet, apiPostForm, apiPutForm } from "@/lib/api";
 import type { Category, KnowledgeArticle, Template } from "@/types/models";
 
 type SectionId = "introduction" | "categories" | "templates" | "knowledge" | "contact" | "downloads";
@@ -120,7 +121,7 @@ const isSectionId = (value: string | null): value is SectionId =>
   value === "downloads";
 
 export function HomeWorkspace() {
-  const { isEditable, isAuthenticated, email, logout, setPendingDownload } = useAuth();
+  const { isEditable, isAdmin, isAuthenticated, email, logout, setPendingDownload } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -137,11 +138,11 @@ export function HomeWorkspace() {
       { id: "knowledge" as SectionId, label: "Knowledge Articles", icon: Book },
       { id: "contact" as SectionId, label: "Contact Us", icon: Mail },
     ];
-    if (isEditable) {
+    if (isAdmin) {
       list.push({ id: "downloads" as SectionId, label: "Downloads List", icon: Download });
     }
     return list;
-  }, [isEditable]);
+  }, [isAdmin]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
   const [flash, setFlash] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -154,6 +155,9 @@ export function HomeWorkspace() {
   const [searchArticles, setSearchArticles] = useState("");
   const [catModal, setCatModal] = useState<CatModalMode>(null);
   const [tplModal, setTplModal] = useState<TplModalMode>(null);
+  const [addArticleOpen, setAddArticleOpen] = useState(false);
+  const [editArticle, setEditArticle] = useState<KnowledgeArticle | null>(null);
+  const [confirmArticleDelete, setConfirmArticleDelete] = useState<KnowledgeArticle | null>(null);
   const [confirm, setConfirm] = useState<{
     kind: "category" | "template";
     id: string;
@@ -265,7 +269,7 @@ export function HomeWorkspace() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (active === "downloads" && isEditable) {
+    if (active === "downloads" && isAdmin) {
       setLoadingUsers(true);
       apiGet<any[]>("/api/auth/users")
         .then((data) => {
@@ -277,7 +281,7 @@ export function HomeWorkspace() {
         .catch((err) => console.error("Failed to load users", err))
         .finally(() => setLoadingUsers(false));
     }
-  }, [active, isEditable]);
+  }, [active, isAdmin]);
 
   const setSection = (section: SectionId) => {
     setActive(section);
@@ -726,6 +730,20 @@ export function HomeWorkspace() {
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const target = {
+                                      href: fileHref(link),
+                                      documentType: "category",
+                                      documentId: parent.id,
+                                      title: parent.title,
+                                      fileLink: link,
+                                      isPreview: true,
+                                    };
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
                                 >
                                   <Eye className="h-4 w-4" />
                                   Preview
@@ -801,6 +819,20 @@ export function HomeWorkspace() {
                                               target="_blank"
                                               rel="noreferrer"
                                               className="rounded p-1 text-gray-500 hover:bg-white hover:text-gray-900"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                const target = {
+                                                  href: fileHref(childLink),
+                                                  documentType: "category",
+                                                  documentId: child.id,
+                                                  title: child.title,
+                                                  fileLink: childLink,
+                                                  isPreview: true,
+                                                };
+                                                startAuthenticatedDownload(target).then((success) => {
+                                                  if (!success) setPendingDownload(target);
+                                                });
+                                              }}
                                             >
                                               <Eye className="h-4 w-4" />
                                             </a>
@@ -922,6 +954,20 @@ export function HomeWorkspace() {
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const target = {
+                                      href: `${API_BASE}${link!}`,
+                                      documentType: "template",
+                                      documentId: tpl.id,
+                                      title: tpl.title,
+                                      fileLink: link!,
+                                      isPreview: true,
+                                    };
+                                    startAuthenticatedDownload(target).then((success) => {
+                                      if (!success) setPendingDownload(target);
+                                    });
+                                  }}
                                 >
                                   <Eye className="h-4 w-4" />
                                   Preview
@@ -991,6 +1037,16 @@ export function HomeWorkspace() {
                       knowledge page when you want the full editor and CRUD flow.
                     </p>
                   </div>
+                  {isEditable && (
+                    <button
+                      type="button"
+                      onClick={() => setAddArticleOpen(true)}
+                      className="inline-flex items-center justify-center gap-2 shrink-0 rounded-md bg-[#001f3f] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#002b52]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Article
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-[#001f3f]">
@@ -1013,6 +1069,18 @@ export function HomeWorkspace() {
                     {searchArticles
                       ? "No articles match your search."
                       : "No knowledge articles yet."}
+                    {isEditable && !searchArticles && (
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setAddArticleOpen(true)}
+                          className="inline-flex items-center gap-2 rounded-md border border-[#001f3f] bg-white px-3 py-2 text-sm font-semibold text-[#001f3f] hover:bg-gray-50"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add the first article
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1041,7 +1109,7 @@ export function HomeWorkspace() {
                         <p className="mt-3 line-clamp-4 text-sm leading-6 text-gray-600">
                           {snippet(article.description, 220)}
                         </p>
-                        <div className="mt-auto pt-4">
+                        <div className="mt-auto flex items-center justify-between pt-4">
                           <Link
                             href={`/knowledge/${article.id}`}
                             className="inline-flex items-center gap-2 text-sm font-semibold text-[#001f3f] hover:underline"
@@ -1049,6 +1117,32 @@ export function HomeWorkspace() {
                             Read article
                             <ChevronRight className="h-4 w-4" />
                           </Link>
+                          {isEditable && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setEditArticle(article);
+                                }}
+                                className="rounded border border-gray-200 p-1.5 text-[#2563eb] hover:bg-gray-50"
+                                title="Edit"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setConfirmArticleDelete(article);
+                                }}
+                                className="rounded border border-gray-200 p-1.5 text-red-600 hover:bg-red-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </article>
                     ))}
@@ -1080,7 +1174,7 @@ export function HomeWorkspace() {
               </div>
             )}
 
-            {active === "downloads" && isEditable && (
+            {active === "downloads" && isAdmin && (
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
@@ -1258,6 +1352,67 @@ export function HomeWorkspace() {
             setFlash(e instanceof Error ? e.message : "Delete failed");
           } finally {
             setConfirm(null);
+          }
+        }}
+      />
+
+      {/* Add Knowledge Article Modal */}
+      <Modal open={addArticleOpen} title="Add Knowledge Article" onClose={() => setAddArticleOpen(false)} size="lg">
+        <KnowledgeArticleFormModalBody
+          mode="add"
+          onCancel={() => setAddArticleOpen(false)}
+          onSubmit={async (data) => {
+            await apiPostForm<KnowledgeArticle>("/api/knowledge-articles", data);
+            setAddArticleOpen(false);
+            setFlash("Article published successfully.");
+            loadArticles(searchArticles);
+          }}
+        />
+      </Modal>
+
+      {/* Edit Knowledge Article Modal */}
+      <Modal
+        open={editArticle != null}
+        title="Edit Knowledge Article"
+        onClose={() => setEditArticle(null)}
+        size="lg"
+      >
+        {editArticle && (
+          <KnowledgeArticleFormModalBody
+            mode="edit"
+            initial={editArticle}
+            onCancel={() => setEditArticle(null)}
+            onSubmit={async (data) => {
+              await apiPutForm<KnowledgeArticle>(`/api/knowledge-articles/${editArticle.id}`, data);
+              setEditArticle(null);
+              setFlash("Article updated successfully.");
+              loadArticles(searchArticles);
+            }}
+          />
+        )}
+      </Modal>
+
+      {/* Delete Knowledge Article Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmArticleDelete != null}
+        title="Delete article"
+        message={
+          confirmArticleDelete ? `Are you sure you want to delete "${confirmArticleDelete.title}"?` : ""
+        }
+        confirmText="Yes, delete"
+        tone="danger"
+        onCancel={() => setConfirmArticleDelete(null)}
+        onConfirm={async () => {
+          const a = confirmArticleDelete;
+          if (!a) return;
+          try {
+            await apiDelete(`/api/knowledge-articles/${a.id}`);
+            setFlash("Article deleted successfully.");
+            loadArticles(searchArticles);
+          } catch (e: unknown) {
+            setFlash(e instanceof Error ? e.message : "Delete failed");
+          } finally {
+            setConfirmArticleDelete(null);
           }
         }}
       />

@@ -48,7 +48,7 @@ export function KnowledgeArticleFormModalBody({
     if (initial) {
       setTitle(initial.title);
       setCountry(initial.country || "");
-      setPostedDate(initial.postedDate || "");
+      setPostedDate(initial.postedDate ? initial.postedDate.slice(0, 10) : "");
       setDescription(initial.description || "");
       setFiles([]);
     } else {
@@ -71,7 +71,7 @@ export function KnowledgeArticleFormModalBody({
     e.preventDefault();
     setErr(null);
 
-    const plain = description.replace(/<[^>]+>/g, "").trim();
+    const plain = description.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim();
 
     if (!title.trim() || !postedDate || !plain) {
       setErr("Title, posted date and description are required.");

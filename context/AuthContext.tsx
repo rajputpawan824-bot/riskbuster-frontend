@@ -15,6 +15,8 @@ import { DownloadRegisterModal } from "@/components/site/DownloadRegisterModal";
 type AuthState = {
   isAuthenticated: boolean;
   isEditable: boolean;
+  isAdmin: boolean;
+  role: string | null;
   email: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, country?: string) => Promise<void>;
@@ -91,7 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       isAuthenticated: Boolean(token),
-      isEditable: Boolean(token) && role === "admin",
+      isEditable: Boolean(token),
+      isAdmin: Boolean(token) && role === "admin",
+      role,
       email,
       login,
       register,
